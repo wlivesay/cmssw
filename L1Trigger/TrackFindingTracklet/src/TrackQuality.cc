@@ -3,6 +3,8 @@
 #include <vector>
 #include <string>
 #include <numeric>
+#include "conifer.h"
+#include "ap_fixed.h"
 
 namespace trklet {
 
@@ -50,6 +52,8 @@ namespace trklet {
     tt::StreamTrack& output = outputs[offset + 1];
     const DataFormat& dfChi20 = dataFormats_->format(Variable::chi20, Process::tq);
     const DataFormat& dfChi21 = dataFormats_->format(Variable::chi21, Process::tq);
+    const DataFormat& dfZT = dataFormats_->format(Variable::zT, Process::tq);
+    const DataFormat& dfCot = dataFormats_->format(Variable::cot, Process::tq);
     output.reserve(input_.size());
     for (const Frame& frame : input_) {
       if (!frame.track_) {
@@ -57,8 +61,8 @@ namespace trklet {
         continue;
       }
       // analyze track and stubs
-      double chi20(0.);
-      double chi21(0.);
+      double chi20F(0.);
+      double chi21F(0.);
       TTBV hitPattern(0, setup_->numLayers());
       for (int layer = 0; layer < setup_->numLayers(); layer++) {
         StubKF* stub = frame.stubs_[layer];
@@ -69,14 +73,33 @@ namespace trklet {
         const double m12 = internalFormats_->m12_.digi(std::pow(stub->z(), 2));
         const double invV0 = internalFormats_->invV0_.digi(1. / std::pow(2. * stub->dPhi(), 2));
         const double invV1 = internalFormats_->invV1_.digi(1. / std::pow(2. * stub->dZ(), 2));
-        chi20 += dfChi20.limit(dfChi20.digi(m02 * invV0));
-        chi21 += dfChi21.limit(dfChi21.digi(m12 * invV1));
+        chi20F += dfChi20.limit(dfChi20.digi(m02 * invV0));
+        chi21F += dfChi21.limit(dfChi21.digi(m12 * invV1));
       }
+      // Accumulating all BDT Attributes
+      chi20F = dfChi20.limit(chi20F);
+      chi21F = dfChi21.limit(chi21F);
+      const int nStubs = hitPattern.count();
+      const int nGaps = hitPattern.count(hitPattern.plEncode(), hitPattern.pmEncode(), false);
+      // get integer values
+      const int zT = dfZT.integer(frame.track_->zT());
+      const int cot = dfCot.integer(frame.track_->cot());
+      const int chi20 = dfChi20.integer(chi20F);
+      const int chi21 = dfChi21.integer(chi21F);
+      // transform double to AP_FIXED_BDT
+      static constexpr double d = std::pow(2., 10);
+      const std::vector<AP_FIXED_BDT> features({nStubs, zT  / d, cot / d, chi20 / d, chi21 / d, nGaps});
+      // BDT Inference
+      const AP_FIXED_BDT mvaFixed = bdt_->decision_function(features).at(0);
+      const AP_INT_BDT mvaInt = mvaFixed.range(mvaFixed.width - 1, 0);
+      // bin mva
+      const std::vector<int>& binEdges = channelAssignment_->tqBinEdges();
       int mva(0);
-      chi20 = dfChi20.limit(chi20);
-      chi21 = dfChi21.limit(chi21);
+      for (; mva < static_cast<int>(binEdges.size()) - 2; mva++)
+        if (mvaInt <= binEdges[mva + 1])
+          break;
       // build output Track
-      TrackTQ trackTQ(*frame.track_, chi20, chi21, mva, hitPattern);
+      TrackTQ trackTQ(*frame.track_, chi20F, chi21F, mva, hitPattern);
       // store result
       output.push_back(trackTQ.frame());
     }
