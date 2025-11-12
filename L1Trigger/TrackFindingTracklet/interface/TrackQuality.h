@@ -12,7 +12,7 @@
 
 namespace trklet {
 
-  typedef ap_int<20>       AP_INT_BDT;
+  typedef ap_int<20> AP_INT_BDT;
   typedef ap_fixed<20, 10> AP_FIXED_BDT;
   typedef conifer::BDT<AP_FIXED_BDT, AP_FIXED_BDT> EmulatorBDT;
 
@@ -30,7 +30,13 @@ namespace trklet {
       DataFormat invV0_;
       DataFormat invV1_;
     };
-    TrackQuality(const DataFormats* df, const InternalFormats& internal, int region, const EmulatorBDT* bdt) : setup_(df->setup()), channelAssignment_(df->channelAssignment()), dataFormats_(df), internalFormats_(&internal), region_(region), bdt_(bdt) {}
+    TrackQuality(const DataFormats* df, const InternalFormats& internal, int region, const EmulatorBDT* bdt)
+        : setup_(df->setup()),
+          channelAssignment_(df->channelAssignment()),
+          dataFormats_(df),
+          internalFormats_(&internal),
+          region_(region),
+          bdt_(bdt) {}
     ~TrackQuality() = default;
     // read in and organize input tracks and stubs
     void consume(const tt::StreamsTrack&, const tt::StreamsStub&);

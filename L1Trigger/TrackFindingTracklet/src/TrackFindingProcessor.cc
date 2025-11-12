@@ -39,7 +39,7 @@ namespace trklet {
     d0_ = -std::max(std::min(ttTrackRef_->d0(), -TTTrack_TrackWord::minD0), TTTrack_TrackWord::minD0);
     const TrackTQ trackTQ(frameTrackTQ, df);
     mva_ = trackTQ.mva();
-    channel_ = cot_ < 0. ? 0 : 1;
+    channel_ = cot_ < 0. ? 1 : 0;
     z0_ = df->format(Variable::zT, Process::kf)
               .digi(trackKF.zT() - cot_ * df->format(Variable::r, Process::kf).digi(setup->chosenRofZ()));
     phi0_ =
@@ -80,10 +80,8 @@ namespace trklet {
     if (!valid_)
       return;
     // create bit vectors
-    const int nLayers = TTTrack_TrackWord::TrackBitWidths::kHitPatternSize;
-    hitPattern_ = trackTQ.hitPattern();
-    std::string s = hitPattern_.resize(nLayers).str();
-    std::reverse(s.begin(), s.end());
+    std::string s = trackTQ.hitPattern().str();
+    s.resize(TTTrack_TrackWord::TrackBitWidths::kHitPatternSize);
     hitPattern_ = TTBV(s);
     const TTBV other = TTBV(0, 2 * TTTrack_TrackWord::TrackBitWidths::kMVAQualitySize);
     const TTBV chi2bend = TTBV(0, TTTrack_TrackWord::TrackBitWidths::kBendChi2Size);

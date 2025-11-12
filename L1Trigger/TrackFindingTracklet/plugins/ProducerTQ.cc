@@ -54,7 +54,8 @@ namespace trklet {
     const EmulatorBDT bdt_;
   };
 
-  ProducerTQ::ProducerTQ(const edm::ParameterSet& iConfig) : bdt_(iConfig.getParameter<edm::FileInPath>("BDT").fullPath()) {
+  ProducerTQ::ProducerTQ(const edm::ParameterSet& iConfig)
+      : bdt_(iConfig.getParameter<edm::FileInPath>("BDT").fullPath()) {
     const std::string& label = iConfig.getParameter<std::string>("InputLabelTQ");
     const std::string& branchStubs = iConfig.getParameter<std::string>("BranchStubs");
     const std::string& branchTracks = iConfig.getParameter<std::string>("BranchTracks");

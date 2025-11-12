@@ -88,7 +88,7 @@ namespace trklet {
       const int chi21 = dfChi21.integer(chi21F);
       // transform double to AP_FIXED_BDT
       static constexpr double d = std::pow(2., 10);
-      const std::vector<AP_FIXED_BDT> features({nStubs, zT  / d, cot / d, chi20 / d, chi21 / d, nGaps});
+      const std::vector<AP_FIXED_BDT> features({nStubs, zT / d, cot / d, chi20 / d, chi21 / d, nGaps});
       // BDT Inference
       const AP_FIXED_BDT mvaFixed = bdt_->decision_function(features).at(0);
       const AP_INT_BDT mvaInt = mvaFixed.range(mvaFixed.width - 1, 0);
@@ -99,7 +99,9 @@ namespace trklet {
         if (mvaInt <= binEdges[mva + 1])
           break;
       // build output Track
-      TrackTQ trackTQ(*frame.track_, chi20F, chi21F, mva, hitPattern);
+      std::string s = hitPattern.str();
+      std::reverse(s.begin(), s.end());
+      TrackTQ trackTQ(*frame.track_, s, mva, chi20F, chi21F);
       // store result
       output.push_back(trackTQ.frame());
     }
