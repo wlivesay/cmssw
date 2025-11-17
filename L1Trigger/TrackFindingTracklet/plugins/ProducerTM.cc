@@ -55,7 +55,7 @@ namespace trklet {
     // ChannelAssignment token
     edm::ESGetToken<ChannelAssignment, ChannelAssignmentRcd> esGetTokenChannelAssignment_;
     // helper class to store tracklet configurations
-    trklet::Settings settings_;
+    Settings settings_;
   };
 
   ProducerTM::ProducerTM(const edm::ParameterSet& iConfig) {

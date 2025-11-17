@@ -49,7 +49,7 @@ namespace tt {
     // plot helper
     std::vector<std::string> resolutions_ = {"Inv2R", "PT", "PhiT", "Phi0", "Cot", "ZT", "Z0", "D0"};
     std::vector<std::string> efficiencies_ = {"Inv2R", "PT", "Eta", "Z0", "D0"};
-    std::vector<double> limitsR_ = {1., 100., 0.01, 10., 50., 30., 10.};
+    std::vector<double> limitsR_ = {.002, 100., 0.01, .01, .5, 30., 10., 0.01};
     std::vector<double> limitsE_ = {1., 100., 2.4, 15., 10.};
     // ED input token of tracks
     edm::EDGetTokenT<std::vector<L1Track>> edGetTokenTracks_;
@@ -193,48 +193,48 @@ namespace tt {
       hisStubs_->Fill(hitPattern.count());
       hisChi2s_[0]->Fill(ttTrack.getChi2RPhiBits());
       hisChi2s_[1]->Fill(ttTrack.getChi2RZBits());
-      const std::vector<TPPtr> any = forFake.associate(ttStubRefs);
+      const std::vector<TPPtr>& any = forFake.associate(ttStubRefs);
       if (any.empty())
         continue;
       allMatched++;
-      const std::vector<TPPtr> dup = forDup.associate(ttStubRefs);
+      const std::vector<TPPtr>& dup = forDup.associate(ttStubRefs);
       if (dup.empty())
         continue;
       allDuplicates++;
       tpPtrsDup.insert(dup.begin(), dup.end());
-      const std::vector<TPPtr> select = forEff.associate(ttStubRefs);
-      const std::vector<TPPtr> perfect = forEff.associateFinal(ttStubRefs);
+      const std::vector<TPPtr>& select = forEff.associate(ttStubRefs);
+      const std::vector<TPPtr>& perfect = forEff.associateFinal(ttStubRefs);
       tpPtrsSelection.insert(select.begin(), select.end());
       tpPtrsPerfect.insert(perfect.begin(), perfect.end());
       // calc resolutions
       const double tt_inv2R = -.5 * ttTrack.rInv();
       const double tt_pt = -setup.invPtToDphi() / tt_inv2R;
-      const double tt_phi0 = ttTrack.localPhi();
-      const double tt_phiT = tt_phi0 + setup.chosenRofPhi() * tt_inv2R;
+      const double tt_phi0 = ttTrack.phi();
+      const double tt_phiT = tt::deltaPhi(tt_phi0 + setup.chosenRofPhi() * tt_inv2R);
       const double tt_cot = ttTrack.tanL();
       const double tt_z0 = ttTrack.z0();
       const double tt_zT = tt_z0 + setup.chosenRofZ() * tt_cot;
       const double tt_d0 = ttTrack.d0();
       for (const TPPtr& tpPtr : perfect) {
         const double eta = std::abs(tpPtr->eta());
-        const double tp_inv2R = tpPtr->charge() / tpPtr->pt() * setup.invPtToDphi();
+        const double tp_inv2R = -tpPtr->charge() / tpPtr->pt() * setup.invPtToDphi();
         const double tp_pt = tpPtr->pt();
-        const double tp_phi0 = tt::deltaPhi(tpPtr->phi() - region * setup.baseRegion());
-        const double tp_phiT = tp_phi0 + setup.chosenRofPhi() * tp_inv2R;
+        const double tp_phi0 = tpPtr->phi();
+        const double tp_phiT = tt::deltaPhi(tp_phi0 + setup.chosenRofPhi() * tp_inv2R);
         const double tp_cot = tpPtr->tanl();
         const double tp_z0 = tpPtr->z0();
         const double tp_zT = tp_z0 + setup.chosenRofZ() * tp_cot;
         const double tp_d0 = tpPtr->d0();
         const double inv2R = tp_inv2R - tt_inv2R;
         const double pt = tp_pt - tt_pt;
-        const double phi0 = tp_phi0 - tt_phi0;
-        const double phiT = tp_phiT - tt_phiT;
+        const double phi0 =  tt::deltaPhi(tp_phi0 - tt_phi0);
+        const double phiT =  tt::deltaPhi(tp_phiT - tt_phiT);
         const double cot = tp_cot - tt_cot;
         const double z0 = tp_z0 - tt_z0;
         const double zT = tp_zT - tt_zT;
         const double d0 = tp_d0 - tt_d0;
         int i(0);
-        for (double d : {inv2R, pt, phi0, phiT, cot, z0, zT, d0}) {
+        for (double d : {inv2R, pt, phiT, phi0, cot, z0, zT, d0}) {
           hisRes_[i]->Fill(d);
           profRes_[i++]->Fill(eta, std::abs(d));
         }

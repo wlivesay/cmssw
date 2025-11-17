@@ -44,10 +44,10 @@ namespace trklet {
     baseHz_ = baseLz_ * std::pow(2, std::floor(std::log2(baseUz_ / baseLz_)));
     baseHcot_ = baseLcot_ * std::pow(2, std::floor(std::log2(baseUcot_ / baseLcot_)));
     // calculate digitisation granularity used for inverted cot(theta)
-    const int baseShiftInvCot = ceil(std::log2(setup_->tbMaxR() / setup_->tbMinZ())) - setup_->widthDSPbu();
+    const int baseShiftInvCot = tt::ceil(std::log2(setup_->tbMaxR() / setup_->tbMinZ())) - setup_->widthDSPbu();
     baseInvCot_ = std::pow(2, baseShiftInvCot);
     const int unusedMSBScot =
-        std::floor(std::log2(baseUcot_ * std::pow(2.0, channelAssignment_->tmWidthCot()) / 2. / setup_->maxCot()));
+        tt::floor(std::log2(baseUcot_ * std::pow(2.0, channelAssignment_->tmWidthCot()) / 2. / setup_->maxCot()));
     const int baseShiftScot = channelAssignment_->tmWidthCot() - unusedMSBScot - 1 - setup_->widthAddrBRAM18();
     baseScot_ = baseUcot_ * std::pow(2.0, baseShiftScot);
   }
@@ -169,11 +169,8 @@ namespace trklet {
           z0 = zT - cot * setup_->chosenRofZ();
           // adjust stub residuals by track parameter shifts
           for (Stub* stub : stubs) {
-            const double dphi = digi(dphiT + stub->r_ * dinv2R, baseUphi_);
-            const double r = stub->r_ + digi(setup_->chosenRofPhi() - setup_->chosenRofZ(), baseUr_);
-            const double dz = digi(dzT + r * dcot, baseUz_);
-            stub->phi_ = digi(stub->phi_ + dphi, baseUphi_);
-            stub->z_ = digi(stub->z_ + dz, baseUz_);
+            stub->phi_ += dphiT + stub->r_ * dinv2R;
+            stub->z_ += dzT + (stub->r_ + setup_->chosenRofPhi() - setup_->chosenRofZ()) * dcot;
           }
         }
         // create fake seed stubs, since TrackBuilder doesn't output these stubs, required by the KF.
@@ -221,7 +218,7 @@ namespace trklet {
           for (Stub* stub : stubs) {
             const GlobalPoint gp = setup_->stubPos(stub->ttStubRef_);
             stub->r_ = gp.perp() - setup_->chosenRofPhi();
-            stub->phi_ = tt::deltaPhi(gp.phi() - region_ * setup_->baseRegion());
+            stub->phi_ = tt::deltaPhi(gp.phi() - offset);
             stub->phi_ -= phiT + stub->r_ * inv2R;
             stub->z_ = gp.z() - (z0 + gp.perp() * cot);
           }

@@ -62,6 +62,8 @@ namespace trklet {
     // number of stub channel per track
     int numLayers_ = 8;
     //
+    int numMVA_ = 8;
+    //
     int nEvents_ = 0;
     // Histograms
     std::vector<TProfile*> prof_;
@@ -96,8 +98,8 @@ namespace trklet {
     edm::Service<TFileService> fs;
     TFileDirectory dir;
     dir = fs->mkdir("TQ");
-    prof_ = std::vector<TProfile*>(8);
-    for (int mva = 0; mva < 8; mva++) {
+    prof_ = std::vector<TProfile*>(numMVA_);
+    for (int mva = 0; mva < numMVA_; mva++) {
       prof_[mva] = dir.make<TProfile>(("Counts for MVA" + std::to_string(mva)).c_str(), ";", 4, 0.5, 4.5);
       prof_[mva]->GetXaxis()->SetBinLabel(1, "All TPs");
       prof_[mva]->GetXaxis()->SetBinLabel(2, "All Tracks");
@@ -119,7 +121,7 @@ namespace trklet {
     for (TProfile* prof : prof_)
       prof->Fill(1, forEff.numTPs());
     // analyze and associate tracks with TrackingParticles per mva categorie
-    for (int mva = 0; mva < 8; mva++) {
+    for (int mva = 0; mva < numMVA_; mva++) {
       std::set<TPPtr> tpPtrsPerfect;
       int nTracks(0);
       int nMatched(0);
@@ -161,7 +163,7 @@ namespace trklet {
       return;
     // printout summary
     log_ << "                         TQ  SUMMARY                         " << std::endl;
-    for (int mva = 0; mva < 8; mva++) {
+    for (int mva = 0; mva < numMVA_; mva++) {
       const double allTracks = prof_[mva]->GetBinContent(2);
       const double allMatched = prof_[mva]->GetBinContent(3);
       const double numPerfect = prof_[mva]->GetBinContent(4);
