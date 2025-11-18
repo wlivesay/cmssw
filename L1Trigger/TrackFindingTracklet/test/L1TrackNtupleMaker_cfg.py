@@ -150,7 +150,7 @@ process.load('L1Trigger.TrackerDTC.Analyzer_cff')
 #process.TrackTriggerSetup.FrontEnd.BendCut = 5.0
 #process.TrackTriggerSetup.Hybrid.MinPt = 1.0
 
-process.dtc = cms.Path(process.Cleaner + process.StubAssociator + process.AnalyzerMC + process.ProducerDTC + process.AnalyzerDTC)
+process.dtc = cms.Path(process.StubAssociator + process.AnalyzerMC + process.ProducerDTC + process.AnalyzerDTC)
 
 ############################################################
 # L1 tracking

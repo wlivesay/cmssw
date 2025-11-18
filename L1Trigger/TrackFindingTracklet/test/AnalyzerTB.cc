@@ -153,6 +153,7 @@ namespace trklet {
     // book histograms
     edm::Service<TFileService> fs;
     TFileDirectory dir;
+    // stub z postion from tracklet residuals plus tracklet seed parameter vs stub z psotion from TTStubs projected to stub radius from tracklet using tracklet seed parameter
     dir = fs->mkdir("TB track parameter");
     his_ = dir.make<TH1F>("His z residual", ";", 128, -2., 2.);
     hisST_ = std::vector<TH1F*>(8);
@@ -162,6 +163,7 @@ namespace trklet {
     profST_ = std::vector<TProfile2D*>(8);
     for (int st = 0; st < 8; st++)
       profST_[st] = dir.make<TProfile2D>(("prof z residual Seed Type " + std::to_string(st)).c_str(), ";", 512, -300, 300., 128, 0., 120.);
+    // stub z postion from tracklet residuals plus recalculated seed parameter vs stub z psotion from TTStubs projected to stub radius from tracklet using recalculated seed parameter
     dir = fs->mkdir("TTStub track parameter");
     hisTT_ = dir.make<TH1F>("His z residual", ";", 128, -2., 2.);
     hisTTST_ = std::vector<TH1F*>(8);
@@ -171,6 +173,7 @@ namespace trklet {
     profTTST_ = std::vector<TProfile2D*>(8);
     for (int st = 0; st < 8; st++)
       profTTST_[st] = dir.make<TProfile2D>(("prof z residual Seed Type " + std::to_string(st)).c_str(), ";", 512, -300, 300., 128, 0., 120.);
+    // Helix parameters from tracklet vs helix parameter calculated from seed TTSTubs 
     dir = fs->mkdir("TB vs TTStub track parameter");
     hisCot_ = dir.make<TH1F>("His cot residual", ";", 128, -.2, .2);
     hisZ0_ = dir.make<TH1F>("His z0 residual", ";", 128, -2., 2.);

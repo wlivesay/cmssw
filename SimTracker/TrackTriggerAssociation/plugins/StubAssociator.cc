@@ -72,6 +72,8 @@ namespace tt {
     double maxVertZ_;
     // cut on TP zT
     double maxZT_;
+    //
+    bool looseMatching_;
     // selector to partly select TPs for efficiency measurements
     TrackingParticleSelector tpSelector_;
   };
@@ -82,7 +84,8 @@ namespace tt {
         maxZ0_(iConfig.getParameter<double>("MaxZ0")),
         maxD0_(iConfig.getParameter<double>("MaxD0")),
         maxVertR_(iConfig.getParameter<double>("MaxVertR")),
-        maxVertZ_(iConfig.getParameter<double>("MaxVertZ")) {
+        maxVertZ_(iConfig.getParameter<double>("MaxVertZ")),
+        looseMatching_(iConfig.getParameter<bool>("LooseMatching")) {
     // book in- and output ed products
     const auto& ttStubDetSetVec = iConfig.getParameter<edm::InputTag>("InputTagTTStubDetSetVec");
     const auto& ttClusterAssMap = iConfig.getParameter<edm::InputTag>("InputTagTTClusterAssMap");
@@ -136,18 +139,22 @@ namespace tt {
     }
     // associate TTStubs with primary TrackingParticles
     std::map<TPPtr, std::set<TTStubRef>> mapPrimaryTPPtrsTTStubRefs;
-    for (auto& p : mapTPPtrsTTStubRefs) {
-      const TPPtr primary = associator->getPrimaryTP(p.first);
-      std::set<TTStubRef>& ttStubRefs = mapPrimaryTPPtrsTTStubRefs[primary];
-      ttStubRefs.insert(p.second.begin(), p.second.end());
+    if (looseMatching_) {
+      for (auto& p : mapTPPtrsTTStubRefs) {
+        const TPPtr primary = associator->getPrimaryTP(p.first);
+        std::set<TTStubRef>& ttStubRefs = mapPrimaryTPPtrsTTStubRefs[primary];
+        ttStubRefs.insert(p.second.begin(), p.second.end());
+      }
     }
     // associate loosly reconstructable TrackingParticles with TTStubs
     StubAssociation forFake;
-    for (const auto& p : mapPrimaryTPPtrsTTStubRefs) {
-      // require min layers
-      const std::vector<TTStubRef> ttStubRefs(p.second.begin(), p.second.end());
-      if (associator->reconstructable(ttStubRefs))
-        forFake.insert(p.first, ttStubRefs);
+    if (looseMatching_) {
+      for (const auto& p : mapPrimaryTPPtrsTTStubRefs) {
+        // require min layers
+        const std::vector<TTStubRef> ttStubRefs(p.second.begin(), p.second.end());
+        if (associator->reconstructable(ttStubRefs))
+          forFake.insert(p.first, ttStubRefs);
+      }
     }
     // associate appreciated TPs with TTStubs
     StubAssociation forDup;
@@ -157,6 +164,8 @@ namespace tt {
       const std::vector<TTStubRef> ttStubRefs(p.second.begin(), p.second.end());
       if (!associator->reconstructable(ttStubRefs))
         continue;
+      if (!looseMatching_)
+        forFake.insert(p.first, ttStubRefs);
       forDup.insert(p.first, ttStubRefs);
       // require parameter space and signal only
       if (!tpSelector_(*p.first))
