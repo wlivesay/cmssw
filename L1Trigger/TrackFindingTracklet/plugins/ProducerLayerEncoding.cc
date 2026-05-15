@@ -1,0 +1,39 @@
+#include "FWCore/Framework/interface/ESProducer.h"
+#include "FWCore/Framework/interface/ESHandle.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "FWCore/Utilities/interface/ESGetToken.h"
+#include "FWCore/Utilities/interface/ESInputTag.h"
+#include "L1Trigger/TrackFindingTracklet/interface/LayerEncoding.h"
+
+#include <memory>
+
+namespace trklet {
+
+  /*! \class  trklet::ProducerLayerEncoding
+   *  \brief  Class to produce KF layer encoding
+   *  \author Thomas Schuh
+   *  \date   2020, July
+   */
+  class ProducerLayerEncoding : public edm::ESProducer {
+  public:
+    ProducerLayerEncoding(const edm::ParameterSet& iConfig);
+    ~ProducerLayerEncoding() override = default;
+    std::unique_ptr<LayerEncoding> produce(const trackerDTC::SetupRcd& rcd);
+
+  private:
+    edm::ESGetToken<DataFormats, trackerDTC::SetupRcd> esGetToken_;
+  };
+
+  ProducerLayerEncoding::ProducerLayerEncoding(const edm::ParameterSet& iConfig) {
+    auto cc = setWhatProduced(this);
+    esGetToken_ = cc.consumes();
+  }
+
+  std::unique_ptr<LayerEncoding> ProducerLayerEncoding::produce(const trackerDTC::SetupRcd& rcd) {
+    const DataFormats* dataFormats = &rcd.get(esGetToken_);
+    return std::make_unique<LayerEncoding>(dataFormats);
+  }
+
+}  // namespace trklet
+
+DEFINE_FWK_EVENTSETUP_MODULE(trklet::ProducerLayerEncoding);

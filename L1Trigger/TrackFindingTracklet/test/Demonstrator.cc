@@ -11,7 +11,7 @@
 #include "DataFormats/Common/interface/Handle.h"
 
 #include "L1Trigger/TrackerTFP/interface/Demonstrator.h"
-#include "L1Trigger/TrackFindingTracklet/interface/ChannelAssignment.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
 
 #include <sstream>
 #include <utility>
@@ -51,15 +51,11 @@ namespace trklet {
     edm::EDGetTokenT<tt::StreamsTrack> edGetTokenTracksIn_;
     edm::EDGetTokenT<tt::StreamsTrack> edGetTokenTracksOut_;
     // Setup token
-    edm::ESGetToken<tt::Setup, tt::SetupRcd> esGetTokenSetup_;
-    // ChannelAssignment token
-    edm::ESGetToken<ChannelAssignment, ChannelAssignmentRcd> esGetTokenChannelAssignment_;
+    edm::ESGetToken<Setup, trackerDTC::SetupRcd> esGetTokenSetup_;
     // Demonstrator token
-    edm::ESGetToken<trackerTFP::Demonstrator, tt::SetupRcd> esGetTokenDemonstrator_;
+    edm::ESGetToken<trackerTFP::Demonstrator, trackerDTC::SetupRcd> esGetTokenDemonstrator_;
     //
-    const tt::Setup* setup_ = nullptr;
-    //
-    const ChannelAssignment* channelAssignment_ = nullptr;
+    const Setup* setup_ = nullptr;
     //
     const trackerTFP::Demonstrator* demonstrator_ = nullptr;
     //
@@ -85,7 +81,6 @@ namespace trklet {
       edGetTokenTracksOut_ = consumes<tt::StreamsTrack>(edm::InputTag(labelOut, branchTracks));
     // book ES products
     esGetTokenSetup_ = esConsumes<edm::Transition::BeginRun>();
-    esGetTokenChannelAssignment_ = esConsumes<edm::Transition::BeginRun>();
     esGetTokenDemonstrator_ = esConsumes<edm::Transition::BeginRun>();
     //
     TBin_ = labelIn == "l1tTTTracksFromTrackletEmulation";
@@ -95,8 +90,6 @@ namespace trklet {
   void Demonstrator::beginRun(const edm::Run& iEvent, const edm::EventSetup& iSetup) {
     //
     setup_ = &iSetup.getData(esGetTokenSetup_);
-    //
-    channelAssignment_ = &iSetup.getData(esGetTokenChannelAssignment_);
     //
     demonstrator_ = &iSetup.getData(esGetTokenDemonstrator_);
   }
@@ -131,20 +124,19 @@ namespace trklet {
       iEvent.getByToken<tt::StreamsTrack>(tokenTracks, handleTracks);
       numChannelTracks = handleTracks->size();
     }
-    numChannelTracks /= setup_->numRegions();
-    numChannelStubs /= (setup_->numRegions() * (tracks ? numChannelTracks : 1));
+    numChannelTracks /= setup_->sysNumRegion();
+    numChannelStubs /= (setup_->sysNumRegion() * (tracks ? numChannelTracks : 1));
     if (TB)
-      numChannelStubs = channelAssignment_->numChannelsStub();
+      numChannelStubs = setup_->tbNumChannelsStub();
     bits.reserve(numChannelTracks + numChannelStubs);
-    for (int region = 0; region < setup_->numRegions(); region++) {
+    for (int region = 0; region < setup_->sysNumRegion(); region++) {
       if (tracks) {
         const int offsetTracks = region * numChannelTracks;
         for (int channelTracks = 0; channelTracks < numChannelTracks; channelTracks++) {
           int offsetStubs = (region * numChannelTracks + channelTracks) * numChannelStubs;
           if (TB) {
-            numChannelStubs =
-                channelAssignment_->numProjectionLayers(channelTracks) + channelAssignment_->numSeedingLayers();
-            offsetStubs = channelAssignment_->offsetStub(offsetTracks + channelTracks);
+            numChannelStubs = setup_->tbNumProjectionLayers(channelTracks) + setup_->tbNumSeedingLayers();
+            offsetStubs = setup_->tbOffsetStub(offsetTracks + channelTracks);
           }
           if (tracks)
             convert(handleTracks->at(offsetTracks + channelTracks), bits);

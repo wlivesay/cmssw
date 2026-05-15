@@ -13,7 +13,7 @@
 
 namespace trklet {
 
-  KalmanFilter::KalmanFilter(const tt::Setup* setup,
+  KalmanFilter::KalmanFilter(const Setup* setup,
                              const DataFormats* dataFormats,
                              KalmanFilterFormats* kalmanFilterFormats,
                              tmtt::Settings* settings,
@@ -30,19 +30,19 @@ namespace trklet {
         layer_(0) {
     zTs_.reserve(settings_->etaRegions().size());
     for (double eta : settings_->etaRegions())
-      zTs_.emplace_back(std::sinh(eta) * settings_->chosenRofZ());
+      zTs_.emplace_back(std::sinh(eta) * setup_->regChosenRofZ());
   }
 
   // read in and organize input tracks and stubs
   void KalmanFilter::consume(const tt::StreamsTrack& streamsTrack, const tt::StreamsStub& streamsStub) {
-    const int offset = region_ * setup_->numLayers();
+    const int offset = region_ * setup_->sysNumLayer();
     const tt::StreamTrack& streamTrack = streamsTrack[region_];
     const int numTracks =
         std::accumulate(streamTrack.begin(), streamTrack.end(), 0, [](int sum, const tt::FrameTrack& f) {
           return sum + (f.first.isNull() ? 0 : 1);
         });
     int numStubs(0);
-    for (int layer = 0; layer < setup_->numLayers(); layer++) {
+    for (int layer = 0; layer < setup_->sysNumLayer(); layer++) {
       const tt::StreamStub& streamStub = streamsStub[offset + layer];
       numStubs += std::accumulate(streamStub.begin(), streamStub.end(), 0, [](int sum, const tt::FrameStub& f) {
         return sum + (f.first.isNull() ? 0 : 1);
@@ -58,8 +58,8 @@ namespace trklet {
       }
       tracks_.emplace_back(frameTrack, dataFormats_);
       TrackDR* track = &tracks_.back();
-      std::vector<Stub*> stubs(setup_->numLayers(), nullptr);
-      for (int layer = 0; layer < setup_->numLayers(); layer++) {
+      std::vector<Stub*> stubs(setup_->sysNumLayer(), nullptr);
+      for (int layer = 0; layer < setup_->sysNumLayer(); layer++) {
         const tt::FrameStub& frameStub = streamsStub[offset + layer][frame];
         if (frameStub.first.isNull())
           continue;
@@ -79,10 +79,10 @@ namespace trklet {
       // convert tracks to by old KF expected data formats
       TrackDR* trackFound = state.track();
       const TTTrackRef& ttTrackRef = trackFound->frame().first;
-      const double qOverPt = -trackFound->inv2R() / setup_->invPtToDphi();
-      const double phi0 = tt::deltaPhi(trackFound->phiT() - setup_->chosenRofPhi() * trackFound->inv2R() +
-                                       region_ * setup_->baseRegion());
-      const double tanLambda = trackFound->zT() / setup_->chosenRofZ();
+      const double qOverPt = -trackFound->inv2R() / setup_->sysInvPtToDphi();
+      const double phi0 = tt::deltaPhi(trackFound->phiT() - setup_->regChosenRofPhi() * trackFound->inv2R() +
+                                       region_ * setup_->regRangePhiT());
+      const double tanLambda = trackFound->zT() / setup_->regChosenRofZ();
       static constexpr double z0 = 0;
       static constexpr double helixD0 = 0.;
       // convert stubs to by old KF expected data formats
@@ -91,30 +91,22 @@ namespace trklet {
       stubs.reserve(state.trackPattern().count());
       stubsFound.reserve(state.trackPattern().count());
       const std::vector<Stub*>& stubsState = state.stubs();
-      for (int layer = 0; layer < setup_->numLayers(); layer++) {
+      for (int layer = 0; layer < setup_->sysNumLayer(); layer++) {
         if (!stubsState[layer])
           continue;
         const StubDR& stub = stubsState[layer]->stubDR_;
         const TTStubRef& ttStubRef = stub.frame().first;
-        tt::SensorModule* sensorModule = setup_->sensorModule(ttStubRef);
+        const trackerDTC::SensorModule* sm = setup_->sensorModule(ttStubRef);
         // convert position
-        double r, phi, z;
-        if (setup_->kfUseTTStubResiduals()) {
-          const GlobalPoint gp = setup_->stubPos(ttStubRef);
-          r = gp.perp();
-          phi = gp.phi();
-          z = gp.z();
-        } else {
-          r = stub.r() + setup_->chosenRofPhi();
-          phi = tt::deltaPhi(stub.phi() + trackFound->phiT() + stub.r() * trackFound->inv2R() +
-                             region_ * setup_->baseRegion());
-          z = stub.z() + trackFound->zT() + (r - setup_->chosenRofZ()) * tanLambda;
-        }
+        const double r = stub.r() + setup_->regChosenRofPhi();
+        const double phi = tt::deltaPhi(stub.phi() + trackFound->phiT() + stub.r() * trackFound->inv2R() +
+                                        region_ * setup_->regRangePhiT());
+        const double z = stub.z() + trackFound->zT() + (r - setup_->regChosenRofZ()) * tanLambda;
         // convert stub layer id (barrel: 1 - 6, endcap: 11 - 15) to reduced layer id (0 - 6)
-        int layerId = setup_->layerId(ttStubRef);
+        int layerId = sm->layerId();
         if (layerId > 10 && z < 0.)
           layerId += 10;
-        int layerIdReduced = setup_->layerId(ttStubRef);
+        int layerIdReduced = sm->layerId();
         if (layerIdReduced == 6)
           layerIdReduced = 11;
         else if (layerIdReduced == 5)
@@ -125,18 +117,18 @@ namespace trklet {
           layerIdReduced = 15;
         if (layerIdReduced > 10)
           layerIdReduced -= 8;
-        const double stripPitch = sensorModule->pitchRow();
-        const double stripLength = sensorModule->pitchCol();
-        const bool psModule = sensorModule->psModule();
-        const bool barrel = sensorModule->barrel();
-        const bool tiltedBarrel = sensorModule->tilted();
+        const double stripPitch = sm->pitchRow();
+        const double stripLength = sm->pitchCol();
+        const bool psModule = sm->psModule();
+        const bool barrel = sm->barrel();
+        const bool tiltedBarrel = sm->tilted();
         stubs.emplace_back(
             ttStubRef, r, phi, z, layerId, layerIdReduced, stripPitch, stripLength, psModule, barrel, tiltedBarrel);
         stubsFound.push_back(&stubs.back());
       }
       // determine phi and eta region
       const int iPhiSec = region_;
-      const double zTtrack = ttTrackRef->z0() + settings_->chosenRofZ() * ttTrackRef->tanL();
+      const double zTtrack = ttTrackRef->z0() + setup_->regChosenRofZ() * ttTrackRef->tanL();
       int iEtaReg = 0;
       for (; iEtaReg < 15; iEtaReg++)
         if (zTtrack < zTs_[iEtaReg + 1])
@@ -150,11 +142,11 @@ namespace trklet {
       static constexpr int trackId = 0;
       static constexpr int numConsistent = 0;
       static constexpr int numConsistentPS = 0;
-      const double inv2R = -trackFitted.qOverPt() * setup_->invPtToDphi();
+      const double inv2R = -trackFitted.qOverPt() * setup_->sysInvPtToDphi();
       const double phiT =
-          tt::deltaPhi(trackFitted.phi0() + inv2R * setup_->chosenRofPhi() - region_ * setup_->baseRegion());
+          tt::deltaPhi(trackFitted.phi0() + inv2R * setup_->regChosenRofPhi() - region_ * setup_->regRangePhiT());
       const double cot = trackFitted.tanLambda();
-      const double zT = trackFitted.z0() + cot * setup_->chosenRofZ();
+      const double zT = trackFitted.z0() + cot * setup_->regChosenRofZ();
       // check for bit overflows
       if (!dataFormats_->format(Variable::inv2R, Process::kf).isCovered(inv2R))
         continue;
@@ -171,9 +163,9 @@ namespace trklet {
       const double x3 = zT - trackFound->zT();
       const double x4 = d0;
       // get intput stubs and convert to emulator format
-      TTBV hitPattern(0, setup_->numLayers());
+      TTBV hitPattern(0, setup_->sysNumLayer());
       std::vector<StubKF> stubsKF;
-      stubsKF.reserve(setup_->numLayers());
+      stubsKF.reserve(setup_->sysNumLayer());
       for (tmtt::Stub* stub : trackFitted.stubs()) {
         if (!stub)
           continue;
@@ -184,9 +176,9 @@ namespace trklet {
         const StubDR& s = (*it)->stubDR_;
         // convert position relative to track
         const double r = s.r();
-        const double r0 = r + setup_->chosenRofPhi();
+        const double r0 = r + setup_->regChosenRofPhi();
         const double phi = s.phi() - (x1 + r * x0 + x4 / r0);
-        const double z = s.z() - (x3 + (r0 - setup_->chosenRofZ()) * x2);
+        const double z = s.z() - (x3 + (r0 - setup_->regChosenRofZ()) * x2);
         const double dPhi = s.dPhi();
         const double dZ = s.dZ();
         const int layer = std::distance(stubsState.begin(), it);
@@ -210,7 +202,7 @@ namespace trklet {
 
   // fill output products
   void KalmanFilter::produce(tt::StreamsStub& streamsStub, tt::StreamsTrack& streamsTrack) {
-    if (setup_->kfUseSimmulation())
+    if (setup_->kfUseSimulation())
       return simulate(streamsStub, streamsTrack);
     // eleminate tracks with insufficient stubs
     int trackId(0);
@@ -232,7 +224,7 @@ namespace trklet {
     // 5 parameter fit simulation
     if (setup_->kfUse5ParameterFit()) {
       // Propagate state to each layer in turn, updating it with all viable stub combinations there, using KF maths
-      for (layer_ = 0; layer_ < setup_->numLayers(); layer_++)
+      for (layer_ = 0; layer_ < setup_->sysNumLayer(); layer_++)
         addLayer();
     } else {  // 4 parameter fit emulation
       // seed building
@@ -241,12 +233,12 @@ namespace trklet {
       // calulcate seed parameter
       calcSeeds();
       // Propagate state to each layer in turn, updating it with all viable stub combinations there, using KF maths
-      for (layer_ = setup_->kfNumSeedStubs(); layer_ < setup_->numLayers(); layer_++)
+      for (layer_ = setup_->kfNumSeedStubs(); layer_ < setup_->sysNumLayer(); layer_++)
         addLayer();
     }
     // apply truncation
-    if (setup_->enableTruncation() && static_cast<int>(stream_.size()) > setup_->numFramesHigh())
-      stream_.resize(setup_->numFramesHigh());
+    if (setup_->enableTruncation() && static_cast<int>(stream_.size()) > setup_->numFrames())
+      stream_.resize(setup_->numFrames());
     // cycle event, remove gaps
     stream_.erase(std::remove(stream_.begin(), stream_.end(), nullptr), stream_.end());
     // apply final cuts
@@ -265,7 +257,7 @@ namespace trklet {
       int numConsistentPS(0);
       TTBV hitPattern = state->hitPattern();
       std::vector<StubKF> stubsKF;
-      stubsKF.reserve(setup_->numLayers());
+      stubsKF.reserve(setup_->sysNumLayer());
       // stub residual cut
       State* s = state;
       while ((s = s->parent())) {
@@ -281,9 +273,9 @@ namespace trklet {
           const double dZ = s->d1();
           const StubDR& stubDR = s->stub()->stubDR_;
           stubsKF.emplace_back(stubDR, r, phi, z, dPhi, dZ);
-          if (abs(phi) <= dPhi && abs(z) <= dZ) {
+          if (std::abs(phi) <= dPhi && std::abs(z) <= dZ) {
             numConsistent++;
-            if (setup_->psModule(stubDR.frame().first))
+            if (s->stub()->stubDR_.frame().first->moduleTypePS())
               numConsistentPS++;
           }
         } else
@@ -294,7 +286,7 @@ namespace trklet {
       bool validLayers = hitPattern.count() >= setup_->kfMinLayers();
       // track parameter cuts
       const double cotTrack =
-          dataFormats_->format(Variable::cot, Process::kf).digi(state->track()->zT() / setup_->chosenRofZ());
+          dataFormats_->format(Variable::cot, Process::kf).digi(state->track()->zT() / setup_->regChosenRofZ());
       const double inv2R = state->x0() + state->track()->inv2R();
       const double phiT = state->x1() + state->track()->phiT();
       const double cot = state->x2() + cotTrack;
@@ -303,7 +295,7 @@ namespace trklet {
       // pt cut
       const bool validX0 = dataFormats_->format(Variable::inv2R, Process::kf).isCovered(inv2R);
       // cut on phi sector boundaries
-      const bool validX1 = abs(phiT) < setup_->baseRegion() / 2.;
+      const bool validX1 = abs(phiT) < setup_->regRangePhiT() / 2.;
       // cot cut
       const bool validX2 = dataFormats_->format(Variable::cot, Process::kf).isCovered(cot);
       // zT cut
@@ -355,17 +347,17 @@ namespace trklet {
 
   // Transform States into output products
   void KalmanFilter::conv(tt::StreamsStub& streamsStub, tt::StreamsTrack& streamsTrack) {
-    const int offset = region_ * setup_->numLayers();
+    const int offset = region_ * setup_->sysNumLayer();
     tt::StreamTrack& streamTrack = streamsTrack[region_];
     streamTrack.reserve(stream_.size());
-    for (int layer = 0; layer < setup_->numLayers(); layer++)
+    for (int layer = 0; layer < setup_->sysNumLayer(); layer++)
       streamsStub[offset + layer].reserve(stream_.size());
     for (const Track& track : finals_) {
       streamTrack.emplace_back(track.trackKF_.frame());
       const TTBV& hitPattern = track.hitPattern_;
       const std::vector<StubKF>& stubsKF = track.stubsKF_;
       int i(0);
-      for (int layer = 0; layer < setup_->numLayers(); layer++)
+      for (int layer = 0; layer < setup_->sysNumLayer(); layer++)
         streamsStub[offset + layer].emplace_back(hitPattern.test(layer) ? stubsKF[i++].frame() : tt::FrameStub());
       // store d0 in copied TTTracks
       if (setup_->kfUse5ParameterFit()) {
@@ -382,7 +374,7 @@ namespace trklet {
                                ttTrackRef->trkMVA3(),
                                ttTrackRef->hitPattern(),
                                5,
-                               setup_->bField(),
+                               setup_->sysBField(),
                                ttTrackRef->phiSector(),
                                ttTrackRef->etaSector(),
                                ttTrackRef->chi2BendRed(),

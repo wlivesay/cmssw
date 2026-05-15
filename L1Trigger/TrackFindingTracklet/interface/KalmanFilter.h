@@ -1,7 +1,7 @@
 #ifndef L1Trigger_TrackFindingTracklet_KalmanFilter_h
 #define L1Trigger_TrackFindingTracklet_KalmanFilter_h
 
-#include "L1Trigger/TrackTrigger/interface/Setup.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
 #include "L1Trigger/TrackFindingTracklet/interface/DataFormats.h"
 #include "L1Trigger/TrackFindingTracklet/interface/KalmanFilterFormats.h"
 #include "L1Trigger/TrackFindingTracklet/interface/State.h"
@@ -40,14 +40,14 @@ namespace trklet {
    *          without seeding stage or old KF. To run 5 parameter simulation set
    *          TrackTriggerSetup.KalmanFilter.Use5ParameterFit = True
    *          to run olfKF set
-   *          TrackTriggerSetup.KalmanFilter.UseSimmulation = True
+   *          TrackTriggerSetup.KalmanFilter.UseSimulation = True
    *  \author Thomas Schuh
    *  \date   2024, Sep
    */
   class KalmanFilter {
   public:
     typedef State::Stub Stub;
-    KalmanFilter(const tt::Setup*,
+    KalmanFilter(const Setup*,
                  const DataFormats*,
                  KalmanFilterFormats*,
                  tmtt::Settings*,
@@ -119,7 +119,7 @@ namespace trklet {
     void update5(State*& state);
 
     // provides run-time constants
-    const tt::Setup* setup_;
+    const Setup* setup_;
     // provides dataformats
     const DataFormats* dataFormats_;
     // provides dataformats of Kalman filter internals

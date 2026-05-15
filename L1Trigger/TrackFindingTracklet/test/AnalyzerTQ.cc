@@ -54,9 +54,9 @@ namespace trklet {
     // ED output token for stub association for tracking efficiency
     edm::EDGetTokenT<tt::StubAssociation> edGetTokenEff_;
     // Associator token
-    edm::ESGetToken<tt::Associator, tt::SetupRcd> esGetTokenAssociator_;
+    edm::ESGetToken<tt::Associator, trackerDTC::SetupRcd> esGetTokenAssociator_;
     // DataFormats token
-    edm::ESGetToken<DataFormats, ChannelAssignmentRcd> esGetTokenDataFormats_;
+    edm::ESGetToken<DataFormats, trackerDTC::SetupRcd> esGetTokenDataFormats_;
     // number of detector regions
     int numRegions_ = 9;
     // number of stub channel per track

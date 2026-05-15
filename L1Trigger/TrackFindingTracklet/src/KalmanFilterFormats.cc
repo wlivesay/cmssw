@@ -136,10 +136,10 @@ namespace trklet {
 
   template <>
   DataFormatKF makeDataFormat<VariableKF::H12>(const DataFormats* dataFormats, const ConfigKF& iConfig) {
-    const tt::Setup* setup = dataFormats->setup();
+    const Setup* setup = dataFormats->setup();
     const DataFormat& tm = dataFormats->format(Variable::r, Process::tm);
     const double base = tm.base();
-    const double rangeMin = 2. * setup->maxRz();
+    const double rangeMin = 2. * setup->tbMaxRz();
     const int width = std::ceil(std::log2(rangeMin / base));
     const double range = base * std::pow(2, width);
     return DataFormatKF(VariableKF::H12, true, iConfig.enableIntegerEmulation_, width, base, range);
@@ -167,7 +167,7 @@ namespace trklet {
   DataFormatKF makeDataFormat<VariableKF::v0>(const DataFormats* dataFormats, const ConfigKF& iConfig) {
     const DataFormat& dPhi = dataFormats->format(Variable::dPhi, Process::dr);
     const DataFormatKF S01 = makeDataFormat<VariableKF::S01>(dataFormats, iConfig);
-    const double range = 4. * dPhi.range() * dPhi.range();
+    const double range = dPhi.range() * dPhi.range() / 3.;
     const double base = S01.base();
     const int width = tt::ceil(std::log2(range / base));
     return DataFormatKF(VariableKF::v0, false, iConfig.enableIntegerEmulation_, width, base, range);
@@ -177,7 +177,7 @@ namespace trklet {
   DataFormatKF makeDataFormat<VariableKF::v1>(const DataFormats* dataFormats, const ConfigKF& iConfig) {
     const DataFormat& dZ = dataFormats->format(Variable::dZ, Process::dr);
     const DataFormatKF S13 = makeDataFormat<VariableKF::S13>(dataFormats, iConfig);
-    const double range = 4. * dZ.range() * dZ.range();
+    const double range = dZ.range() * dZ.range() / 3.;
     const double base = S13.base();
     const int width = tt::ceil(std::log2(range / base));
     return DataFormatKF(VariableKF::v1, false, iConfig.enableIntegerEmulation_, width, base, range);
@@ -491,7 +491,7 @@ namespace trklet {
   DataFormatKF makeDataFormat<VariableKF::dH>(const DataFormats* dataFormats, const ConfigKF& iConfig) {
     const DataFormatKF H00 = makeDataFormat<VariableKF::H00>(dataFormats, iConfig);
     const int width = dataFormats->setup()->widthAddrBRAM18();
-    const double range = dataFormats->setup()->outerRadius() - dataFormats->setup()->innerRadius();
+    const double range = dataFormats->setup()->sysOuterRadius() - dataFormats->setup()->sysInnerRadius();
     const double base = H00.base() * std::pow(2, ceil(log2(range / H00.base())) - width);
     return DataFormatKF(VariableKF::dH, false, iConfig.enableIntegerEmulation_, width, base, range);
   }

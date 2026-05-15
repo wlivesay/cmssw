@@ -10,8 +10,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/Common/interface/Handle.h"
 
-#include "L1Trigger/TrackTrigger/interface/Setup.h"
-#include "L1Trigger/TrackFindingTracklet/interface/ChannelAssignment.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
 #include "L1Trigger/TrackFindingTracklet/interface/DataFormats.h"
 #include "L1Trigger/TrackFindingTracklet/interface/Settings.h"
 #include "L1Trigger/TrackFindingTracklet/interface/TrackMultiplexer.h"
@@ -45,51 +44,49 @@ namespace trklet {
     edm::EDGetTokenT<tt::StreamsTrack> edGetTokenTracks_;
     // ED input token of Stubs
     edm::EDGetTokenT<tt::StreamsStub> edGetTokenStubs_;
+    // ED input token of TTDTC
+    edm::EDGetTokenT<TTDTC> edGetTokenDTC_;
     // ED output token for stubs
     edm::EDPutTokenT<tt::StreamsStub> edPutTokenStubs_;
     // ED output token for tracks
     edm::EDPutTokenT<tt::StreamsTrack> edPutTokenTracks_;
     // Setup token
-    edm::ESGetToken<tt::Setup, tt::SetupRcd> esGetTokenSetup_;
+    edm::ESGetToken<Setup, trackerDTC::SetupRcd> esGetTokenSetup_;
     // DataFormats token
-    edm::ESGetToken<DataFormats, ChannelAssignmentRcd> esGetTokenDataFormats_;
-    // ChannelAssignment token
-    edm::ESGetToken<ChannelAssignment, ChannelAssignmentRcd> esGetTokenChannelAssignment_;
-    // helper class to store tracklet configurations
-    Settings settings_;
+    edm::ESGetToken<DataFormats, trackerDTC::SetupRcd> esGetTokenDataFormats_;
   };
 
   ProducerTM::ProducerTM(const edm::ParameterSet& iConfig) {
     const std::string& label = iConfig.getParameter<std::string>("InputLabelTM");
     const std::string& branchStubs = iConfig.getParameter<std::string>("BranchStubs");
     const std::string& branchTracks = iConfig.getParameter<std::string>("BranchTracks");
+    const edm::InputTag& inputTagDTC = iConfig.getParameter<edm::InputTag>("InputTagTTDTC");
     // book in- and output ED products
     edGetTokenTracks_ = consumes(edm::InputTag(label, branchTracks));
     edGetTokenStubs_ = consumes(edm::InputTag(label, branchStubs));
+    edGetTokenDTC_ = consumes(inputTagDTC);
     edPutTokenStubs_ = produces(branchStubs);
     edPutTokenTracks_ = produces(branchTracks);
     // book ES products
     esGetTokenSetup_ = esConsumes();
     esGetTokenDataFormats_ = esConsumes();
-    esGetTokenChannelAssignment_ = esConsumes();
   }
 
   void ProducerTM::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     // helper class to store configurations
-    const tt::Setup* setup = &iSetup.getData(esGetTokenSetup_);
+    const Setup* setup = &iSetup.getData(esGetTokenSetup_);
     // helper class to extract structured data from tt::Frames
     const DataFormats* dataFormats = &iSetup.getData(esGetTokenDataFormats_);
-    // helper class to assign tracks to channel
-    const ChannelAssignment* channelAssignment = &iSetup.getData(esGetTokenChannelAssignment_);
     // empty TM products
-    tt::StreamsStub streamsStub(setup->numRegions() * channelAssignment->tmNumLayers());
-    tt::StreamsTrack streamsTrack(setup->numRegions());
+    tt::StreamsStub streamsStub(setup->sysNumRegion() * setup->tmNumLayers());
+    tt::StreamsTrack streamsTrack(setup->sysNumRegion());
     // read in TBout Product and produce TM product
     const tt::StreamsStub& stubs = iEvent.get(edGetTokenStubs_);
     const tt::StreamsTrack& tracks = iEvent.get(edGetTokenTracks_);
-    for (int region = 0; region < setup->numRegions(); region++) {
+    const TTDTC& ttDTC = iEvent.get(edGetTokenDTC_);
+    for (int region = 0; region < setup->sysNumRegion(); region++) {
       // object to reformat tracks from tracklet fromat to TMTT format in a processing region
-      TrackMultiplexer tm(setup, dataFormats, channelAssignment, &settings_, region);
+      TrackMultiplexer tm(setup, dataFormats, region, ttDTC);
       // read in and organize input tracks and stubs
       tm.consume(tracks, stubs);
       // fill output products

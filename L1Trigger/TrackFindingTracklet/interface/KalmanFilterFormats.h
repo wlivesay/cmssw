@@ -183,7 +183,7 @@ namespace trklet {
     KalmanFilterFormats();
     ~KalmanFilterFormats() = default;
     DataFormatKF& format(VariableKF v) { return formats_[+v]; }
-    const tt::Setup* setup() const { return dataFormats_->setup(); }
+    const Setup* setup() const { return dataFormats_->setup(); }
     const DataFormats* dataFormats() const { return dataFormats_; }
     void consume(const DataFormats* dataFormats, const ConfigKF& iConfig);
     void endJob(std::stringstream& ss);

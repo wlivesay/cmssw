@@ -69,8 +69,6 @@ namespace trklet {
       double z0_;
       std::deque<StubTB*> stubs_;
     };
-    // truncates double precision of val into base precision
-    double digi(double val, double base) const { return (tt::floor(val / base) + .5) * base; }
     // read in tracks and stubs
     void consume(const tt::StreamsTrack&, const tt::StreamsStub&, std::deque<TrackTB>&, std::deque<StubTB>&) const;
     // ED input token of Tracks
@@ -84,27 +82,11 @@ namespace trklet {
     // ED output token for stub association for tracking efficiency
     edm::EDGetTokenT<tt::StubAssociation> edGetTokenEff_;
     // Setup token
-    edm::ESGetToken<tt::Setup, tt::SetupRcd> esGetTokensetup;
-    // ChannelAssignment token
-    edm::ESGetToken<ChannelAssignment, ChannelAssignmentRcd> esGetTokenChannelAssignment_;
+    edm::ESGetToken<Setup, trackerDTC::SetupRcd> esGetTokensetup;
     // Associator token
-    edm::ESGetToken<tt::Associator, tt::SetupRcd> esGetTokenAssociator_;
+    edm::ESGetToken<tt::Associator, trackerDTC::SetupRcd> esGetTokenAssociator_;
     // helper class to store configurations
-    const tt::Setup* setup_;
-    // helper class to assign tracks to channel
-    const ChannelAssignment* channelAssignment_;
-    // helper class to store tracklet configurations
-    Settings settings_;
-    //
-    double baseUinv2R_;
-    double baseUphiT_;
-    double baseUcot_;
-    double baseUzT_;
-    double baseUr_;
-    double baseUphi_;
-    double baseUz_;
-    double baseInvCot_;
-    double baseScot_;
+    const Setup* setup_;
     //
     TH1F* his_;
     std::vector<TH1F*> hisST_;
@@ -118,6 +100,8 @@ namespace trklet {
     TH1F* hisZ0_;
     std::vector<TH1F*> hisCotST_;
     std::vector<TH1F*> hisZ0ST_;
+    TH1F* hisR_;
+    TProfile2D* profR_;
   };
 
   AnalyzerTB::AnalyzerTB(const edm::ParameterSet& iConfig) {
@@ -133,30 +117,12 @@ namespace trklet {
     edGetTokenEff_ = consumes(edm::InputTag(labelMC, branchEff));
     // book ES products
     esGetTokensetup = esConsumes<edm::Transition::BeginRun>();
-    esGetTokenChannelAssignment_ = esConsumes<edm::Transition::BeginRun>();
     esGetTokenAssociator_ = esConsumes();
-    //
-    baseUinv2R_ = .5 * settings_.kphi1() / settings_.kr() * pow(2, settings_.rinv_shift());
-    baseUphiT_ = settings_.kphi1() * pow(2, settings_.phi0_shift());
-    baseUcot_ = settings_.kz() / settings_.kr() * pow(2, settings_.t_shift());
-    baseUzT_ = settings_.kz() * pow(2, settings_.z0_shift());
-    baseUr_ = settings_.kr();
-    baseUphi_ = settings_.kphi1();
-    baseUz_ = settings_.kz();
   }
 
   void AnalyzerTB::beginRun(const edm::Run& iEvent, const edm::EventSetup& iSetup) {
     // helper class to store configurations
     setup_ = &iSetup.getData(esGetTokensetup);
-    // helper class to assign tracks to channel
-    channelAssignment_ = &iSetup.getData(esGetTokenChannelAssignment_);
-    //
-    const int baseShiftInvCot = tt::ceil(std::log2(setup_->tbMaxR() / setup_->tbMinZ())) - setup_->widthDSPbu();
-    baseInvCot_ = std::pow(2, baseShiftInvCot);
-    const int unusedMSBScot =
-        tt::floor(std::log2(baseUcot_ * std::pow(2.0, channelAssignment_->tmWidthCot()) / 2. / setup_->maxCot()));
-    const int baseShiftScot = channelAssignment_->tmWidthCot() - unusedMSBScot - 1 - setup_->widthAddrBRAM18();
-    baseScot_ = baseUcot_ * std::pow(2.0, baseShiftScot);
     // book histograms
     edm::Service<TFileService> fs;
     TFileDirectory dir;
@@ -192,6 +158,8 @@ namespace trklet {
       hisCotST_[st] = dir.make<TH1F>(("His cot residual Seed Type " + std::to_string(st)).c_str(), ";", 128, -.2, .2);
       hisZ0ST_[st] = dir.make<TH1F>(("His z0 residual Seed Type " + std::to_string(st)).c_str(), ";", 128, -2., 2.);
     }
+    hisR_ = dir.make<TH1F>("HisResR", ";", 100, -.2, .2);
+    profR_ = dir.make<TProfile2D>("ProfResR", ";;", 400, -300., 300., 400, 0., 120.);
   }
 
   void AnalyzerTB::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup) {
@@ -218,7 +186,7 @@ namespace trklet {
         // calculate TBStub z position
         const double z =
             trackTB.z0_ + trackTB.cot_ / trackTB.inv2R_ * std::asin(stubTB->r_ * trackTB.inv2R_) + stubTB->z_;
-        const GlobalPoint gp = setup_->stubPos(stubTB->ttStubRef_);
+        const GlobalPoint gp = setup_->stubPosTT(stubTB->ttStubRef_);
         // calculate TTStub z position at TBStub radius
         const double ttZ =
             gp.z() - trackTB.cot_ / trackTB.inv2R_ * std::asin((gp.perp() - stubTB->r_) * trackTB.inv2R_);
@@ -235,7 +203,7 @@ namespace trklet {
       for (StubTB* stubTB : trackTB.stubs_) {
         if (!stubTB->seed_)
           continue;
-        const GlobalPoint gp = setup_->stubPos(stubTB->ttStubRef_);
+        const GlobalPoint gp = setup_->stubPosTT(stubTB->ttStubRef_);
         r.push_back(gp.perp());
         z.push_back(gp.z());
       }
@@ -260,7 +228,7 @@ namespace trklet {
           z += (trackTB.cot_ - cot) / trackTB.inv2R_ * std::asin(stubTB->r_ * trackTB.inv2R_) + (trackTB.z0_ - z0);
         // calculate z position
         z += z0 + cot / trackTB.inv2R_ * std::asin(stubTB->r_ * trackTB.inv2R_);
-        const GlobalPoint gp = setup_->stubPos(stubTB->ttStubRef_);
+        const GlobalPoint gp = setup_->stubPosTT(stubTB->ttStubRef_);
         // calculate TTStub z position at TBStub radius
         const double ttZ = gp.z() - cot / trackTB.inv2R_ * std::asin((gp.perp() - stubTB->r_) * trackTB.inv2R_);
         // caluclate error
@@ -270,6 +238,11 @@ namespace trklet {
         hisTTST_[trackTB.seedType_]->Fill(delta);
         profTT_->Fill(gp.z(), gp.perp(), std::abs(delta));
         profTTST_[trackTB.seedType_]->Fill(gp.z(), gp.perp(), std::abs(delta));
+        if (!stubTB->seed_) {
+          const double dR = gp.perp() - stubTB->r_;
+          hisR_->Fill(dR);
+          profR_->Fill(gp.z(), gp.perp(), std::abs(dR));
+        }
       }
     }
   }
@@ -279,78 +252,43 @@ namespace trklet {
                            const tt::StreamsStub& streamsStub,
                            std::deque<TrackTB>& tbTracks,
                            std::deque<StubTB>& tbStubs) const {
-    for (int region = 0; region < setup_->numRegions(); region++) {
-      const int offsetTrack = region * channelAssignment_->numChannelsTrack();
-      for (int channel = 0; channel < channelAssignment_->numChannelsTrack(); channel++) {
-        const int numP = channelAssignment_->numProjectionLayers(channel);
-        const int channelTrack = offsetTrack + channel;
-        const int offsetStub = channelAssignment_->offsetStub(channelTrack);
+    for (int region = 0; region < setup_->sysNumRegion(); region++) {
+      const int offsetTrack = region * setup_->tbNumChannelsTrack();
+      const int offsetStub = region * setup_->tbNumChannelsStub();
+      for (int seeedType = 0; seeedType < setup_->tbNumChannelsTrack(); seeedType++) {
+        const int numP = setup_->tbNumProjectionLayers(seeedType);
+        const int channelTrack = offsetTrack + seeedType;
+        const int offsetChannel = offsetStub + setup_->tbOffsetStub(seeedType);
         const tt::StreamTrack& streamTrack = streamsTrack[channelTrack];
         for (int frame = 0; frame < static_cast<int>(streamTrack.size()); frame++) {
           const TTTrackRef& ttTrackRef = streamTrack[frame].first;
           if (ttTrackRef.isNull())
             continue;
           //convert track parameter
-          double inv2R = digi(-ttTrackRef->rInv() / 2., baseUinv2R_);
-          double cot = digi(ttTrackRef->tanL(), baseUcot_);
-          double z0 = digi(ttTrackRef->z0(), baseUzT_);
+          double inv2R = tt::digi(-ttTrackRef->rInv() / 2., setup_->tbBaseInv2R());
+          double cot = tt::digi(ttTrackRef->tanL(), setup_->tbBaseCot());
+          double z0 = tt::digi(ttTrackRef->z0(), setup_->tbBaseZ0());
           // convert stubs
           std::deque<StubTB*> trackStubs;
           for (int layer = 0; layer < numP; layer++) {
-            const tt::FrameStub& frameStub = streamsStub[offsetStub + layer][frame];
+            const tt::FrameStub& frameStub = streamsStub[offsetChannel + layer][frame];
             const TTStubRef& ttStubRef = frameStub.first;
             if (ttStubRef.isNull())
               continue;
-            // parse residuals from tt::Frame and take layerId from tt::TTStubRef
-            const bool barrel = setup_->barrel(ttStubRef);
-            const int layerIdTracklet = setup_->trackletLayerId(ttStubRef);
-            const double baseRZ = barrel ? settings_.kz(layerIdTracklet) : settings_.kz();
-            const int widthRZ = barrel ? settings_.zresidbits() : settings_.rresidbits();
-            TTBV hw(frameStub.second);
-            const TTBV hwRZ(hw, widthRZ, 0, true);
-            hw >>= widthRZ;
-            hw >>= settings_.phiresidbits();
-            const int indexLayerId = setup_->indexLayerId(ttStubRef);
-            const tt::SensorModule::Type type = setup_->type(ttStubRef);
-            const int widthR = setup_->tbWidthR(type);
-            const double baseR = setup_->hybridBaseR(type);
-            const TTBV hwR(hw, widthR, 0, barrel);
-            double r = hwR.val(baseR) + (barrel ? setup_->hybridLayerR(indexLayerId) : 0.0);
-            if (type == tt::SensorModule::Disk2S)
-              r = setup_->disk2SR(indexLayerId, r);
-            r = digi(r, baseUr_);
-            double z = digi(hwRZ.val(baseRZ) * (barrel ? 1. : -cot), baseUz_);
-            tbStubs.emplace_back(ttStubRef, r, z, inv2R);
+            const GlobalPoint gp = setup_->stubPosTB(frameStub, cot);
+            tbStubs.emplace_back(ttStubRef, gp.perp(), gp.z(), inv2R);
             trackStubs.push_back(&tbStubs.back());
           }
           // create fake seed stubs, since TrackBuilder doesn't output these stubs, required by the KF.
-          for (int seedingLayer = 0; seedingLayer < channelAssignment_->numSeedingLayers(); seedingLayer++) {
-            const int channelStub = numP + seedingLayer;
-            const tt::FrameStub& frameStub = streamsStub[offsetStub + channelStub][frame];
+          for (int seedingLayer = 0; seedingLayer < setup_->tbNumSeedingLayers(); seedingLayer++) {
+            const tt::FrameStub& frameStub = streamsStub[offsetChannel + numP + seedingLayer][frame];
             const TTStubRef& ttStubRef = frameStub.first;
-            const int layerId = channelAssignment_->layerId(channel, channelStub);
-            const bool barrel = setup_->barrel(ttStubRef);
-            double r;
-            if (barrel) {
-              const int index = layerId - setup_->offsetLayerId();
-              const double layer = digi(setup_->hybridLayerR(index), baseUr_);
-              const double z = digi(z0 + layer * cot, baseUz_);
-              if (std::abs(z) < digi(setup_->tbMinZ(), baseUz_) || index > 0)
-                r = digi(setup_->hybridLayerR(index), baseUr_);
-              else
-                r = digi(setup_->innerRadius(), baseUr_);
-            } else {
-              const int index = layerId - setup_->offsetLayerId() - setup_->offsetLayerDisks();
-              const double side = cot < 0. ? -1. : 1.;
-              const double disk = digi(setup_->hybridDiskZ(index), baseUzT_);
-              const double invCot = digi(1. / digi(std::abs(cot), baseScot_), baseInvCot_);
-              r = digi((disk - side * z0) * invCot, baseUr_);
-            }
-            tbStubs.emplace_back(ttStubRef, r, 0., inv2R, true);
+            const GlobalPoint gp = setup_->stubPosTB(ttStubRef, cot, z0);
+            tbStubs.emplace_back(ttStubRef, gp.perp(), 0., inv2R, true);
             trackStubs.push_back(&tbStubs.back());
           }
           // create track
-          tbTracks.emplace_back(ttTrackRef, channel, inv2R, cot, z0, trackStubs);
+          tbTracks.emplace_back(ttTrackRef, seeedType, inv2R, cot, z0, trackStubs);
         }
       }
     }

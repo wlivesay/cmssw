@@ -1,10 +1,9 @@
 #ifndef L1Trigger_TrackFindingTracklet_TrackMultiplexer_h
 #define L1Trigger_TrackFindingTracklet_TrackMultiplexer_h
 
-#include "L1Trigger/TrackTrigger/interface/Setup.h"
-#include "L1Trigger/TrackFindingTracklet/interface/ChannelAssignment.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
 #include "L1Trigger/TrackFindingTracklet/interface/DataFormats.h"
-#include "L1Trigger/TrackFindingTracklet/interface/Settings.h"
+#include "DataFormats/L1TrackTrigger/interface/TTDTC.h"
 
 #include <vector>
 #include <deque>
@@ -19,11 +18,7 @@ namespace trklet {
    */
   class TrackMultiplexer {
   public:
-    TrackMultiplexer(const tt::Setup* setup_,
-                     const DataFormats* dataFormats,
-                     const ChannelAssignment* channelAssignment,
-                     const Settings* settings,
-                     int region);
+    TrackMultiplexer(const Setup*, const DataFormats*, int, const TTDTC&);
     ~TrackMultiplexer() = default;
     // read in and organize input tracks and stubs
     void consume(const tt::StreamsTrack& streamsTrack, const tt::StreamsStub& streamsStub);
@@ -31,10 +26,6 @@ namespace trklet {
     void produce(tt::StreamsTrack& streamsTrack, tt::StreamsStub& streamsStub);
 
   private:
-    // truncates double precision of val into base precision
-    double digi(double val, double base) const { return (tt::floor(val / base) + .5) * base; }
-    // basetransformation of val from baseLow into baseHigh using widthMultiplier bit multiplication
-    double redigi(double val, double baseLow, double baseHigh, int widthMultiplier) const;
     struct Stub {
       Stub(const TTStubRef& ttStubRef, int layer, int stubId, double r, double phi, double z, bool psTilt)
           : valid_(true), ttStubRef_(ttStubRef), layer_(layer), stubId_(stubId), r_(r), phi_(phi), z_(z) {
@@ -94,13 +85,9 @@ namespace trklet {
     //
     bool applyNonLinearCorrection_;
     // provides run-time constants
-    const tt::Setup* setup_;
+    const Setup* setup_;
     // provides dataformats
     const DataFormats* dataFormats_;
-    // helper class to assign tracks to channel
-    const ChannelAssignment* channelAssignment_;
-    // provides tracklet constants
-    const Settings* settings_;
     // processing region (0 - 8) aka processing phi nonant
     const int region_;
     // storage of input tracks
@@ -109,6 +96,8 @@ namespace trklet {
     std::vector<Stub> stubs_;
     // h/w liked organized pointer to input tracks
     std::vector<std::vector<Track*>> input_;
+    // DTC stubs
+    std::vector<tt::FrameStub> dtc_;
     // unified tracklet digitisation granularity
     double baseUinv2R_;
     double baseUphiT_;
@@ -133,9 +122,6 @@ namespace trklet {
     double baseHphi_;
     double baseHz_;
     double baseHcot_;
-    // digitisation granularity used for inverted cot(theta)
-    double baseInvCot_;
-    double baseScot_;
   };
 
 }  // namespace trklet

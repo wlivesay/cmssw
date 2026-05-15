@@ -1,7 +1,7 @@
 #ifndef L1Trigger_TrackFindingTracklet_State_h
 #define L1Trigger_TrackFindingTracklet_State_h
 
-#include "L1Trigger/TrackTrigger/interface/Setup.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
 #include "L1Trigger/TrackFindingTracklet/interface/DataFormats.h"
 #include "L1Trigger/TrackFindingTracklet/interface/KalmanFilterFormats.h"
 
@@ -15,7 +15,7 @@ namespace trklet {
   public:
     //
     struct Stub {
-      Stub(KalmanFilterFormats* kff, const tt::FrameStub& frame);
+      Stub(KalmanFilterFormats*, const tt::FrameStub&);
       StubDR stubDR_;
       double H12_;
       double H04_;
@@ -23,22 +23,22 @@ namespace trklet {
       double v1_;
     };
     // copy constructor
-    State(State* state);
+    State(State*);
     // proto state constructor
-    State(KalmanFilterFormats* kff, TrackDR* track, const std::vector<Stub*>& stubs);
+    State(KalmanFilterFormats*, TrackDR*, const std::vector<Stub*>&);
     // updated state constructor
-    State(State* state, const std::vector<double>& doubles);
+    State(State*, const std::vector<double>&);
     // combinatoric and seed building state constructor
-    State(State* state, State* parent, int layer);
+    State(State*, State*, int);
     ~State() = default;
     //
     void setTrackId(int trackId) { trackId_ = trackId; }
     //
-    State* comb(std::deque<State>& states, int layer);
+    State* comb(std::deque<State>&, int);
     //
-    State* combSeed(std::deque<State>& states, int layer);
+    State* combSeed(std::deque<State>&, int);
     //
-    State* update(std::deque<State>& states, int layer);
+    State* update(std::deque<State>&, int);
     // input track
     TrackDR* track() const { return track_; }
     // parent state (nullpointer if no parent available)
@@ -103,7 +103,7 @@ namespace trklet {
     // provides data fomats
     KalmanFilterFormats* kff_;
     // provides run-time constants
-    const tt::Setup* setup_;
+    const Setup* setup_;
     // input track
     TrackDR* track_;
     // input track stubs

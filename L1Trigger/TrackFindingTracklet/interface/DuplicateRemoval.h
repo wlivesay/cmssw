@@ -1,10 +1,9 @@
 #ifndef L1Trigger_TrackFindingTracklet_DuplicateRemoval_h
 #define L1Trigger_TrackFindingTracklet_DuplicateRemoval_h
 
-#include "L1Trigger/TrackTrigger/interface/Setup.h"
-#include "L1Trigger/TrackerTFP/interface/LayerEncoding.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
+#include "L1Trigger/TrackFindingTracklet/interface/LayerEncoding.h"
 #include "L1Trigger/TrackFindingTracklet/interface/DataFormats.h"
-#include "L1Trigger/TrackFindingTracklet/interface/ChannelAssignment.h"
 
 #include <vector>
 
@@ -20,10 +19,9 @@ namespace trklet {
    */
   class DuplicateRemoval {
   public:
-    DuplicateRemoval(const tt::Setup* setup_,
-                     const trackerTFP::LayerEncoding* layerEncoding,
+    DuplicateRemoval(const Setup* setup_,
+                     const LayerEncoding* layerEncoding,
                      const DataFormats* dataFormats,
-                     const ChannelAssignment* channelAssignment,
                      int region);
     ~DuplicateRemoval() = default;
     // read in and organize input tracks and stubs
@@ -54,13 +52,11 @@ namespace trklet {
     // true if truncation is enbaled
     bool enableTruncation_;
     // provides run-time constants
-    const tt::Setup* setup_;
+    const Setup* setup_;
     // helper class to encode layer
-    const trackerTFP::LayerEncoding* layerEncoding_;
+    const LayerEncoding* layerEncoding_;
     // provides dataformats
     const DataFormats* dataFormats_;
-    // helper class to assign tracks to channel
-    const ChannelAssignment* channelAssignment_;
     // processing region (0 - 8) aka processing phi nonant
     const int region_;
     // storage of input tracks

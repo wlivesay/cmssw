@@ -11,7 +11,7 @@
 #include "DataFormats/Common/interface/Handle.h"
 
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
-#include "L1Trigger/TrackTrigger/interface/Setup.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
 #include "L1Trigger/TrackFindingTracklet/interface/DataFormats.h"
 #include "L1Trigger/TrackFindingTracklet/interface/KalmanFilter.h"
 #include "L1Trigger/TrackFindingTMTT/interface/Settings.h"
@@ -42,12 +42,8 @@ namespace trklet {
       edm::LogPrint(moduleDescription().moduleName()) << ss.str();
     }
     // merge woker output
-    void merge(const tt::StreamsStub&,
-               const tt::StreamsTrack&,
-               tt::StreamsStub&,
-               tt::StreamsTrack&,
-               int,
-               const tt::Setup*) const;
+    void merge(
+        const tt::StreamsStub&, const tt::StreamsTrack&, tt::StreamsStub&, tt::StreamsTrack&, int, const Setup*) const;
     // ED input token of sf stubs and tracks
     edm::EDGetTokenT<tt::StreamsStub> edGetTokenStubs_;
     edm::EDGetTokenT<tt::StreamsTrack> edGetTokenTracks_;
@@ -56,9 +52,9 @@ namespace trklet {
     edm::EDPutTokenT<tt::StreamsStub> edPutTokenStubs_;
     edm::EDPutTokenT<tt::StreamsTrack> edPutTokenTracks_;
     // Setup token
-    edm::ESGetToken<tt::Setup, tt::SetupRcd> esGetTokenSetup_;
+    edm::ESGetToken<Setup, trackerDTC::SetupRcd> esGetTokenSetup_;
     // DataFormats token
-    edm::ESGetToken<DataFormats, ChannelAssignmentRcd> esGetTokenDataFormats_;
+    edm::ESGetToken<DataFormats, trackerDTC::SetupRcd> esGetTokenDataFormats_;
     // helper class to extract structured data from tt::Frames
     const DataFormats* dataFormats_;
     // provides dataformats of Kalman filter internals
@@ -152,12 +148,12 @@ namespace trklet {
 
   void ProducerKF::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     // helper class to store configurations
-    const tt::Setup* setup = &iSetup.getData(esGetTokenSetup_);
-    settings_.setMagneticField(setup->bField());
+    const Setup* setup = &iSetup.getData(esGetTokenSetup_);
+    settings_.setMagneticField(setup->sysBField());
     auto valid = [](int sum, const tt::FrameTrack& f) { return sum + (f.first.isNull() ? 0 : 1); };
     // empty KF products
-    tt::StreamsStub streamsStub(setup->numRegions() * setup->numLayers());
-    tt::StreamsTrack streamsTrack(setup->numRegions());
+    tt::StreamsStub streamsStub(setup->sysNumRegion() * setup->sysNumLayer());
+    tt::StreamsTrack streamsTrack(setup->sysNumRegion());
     // read in DR Product and produce KF product
     const tt::StreamsStub& stubs = iEvent.get(edGetTokenStubs_);
     const tt::StreamsTrack& tracks = iEvent.get(edGetTokenTracks_);
@@ -176,7 +172,7 @@ namespace trklet {
           if (frame.first.isNonnull())
             ttTrackRefs.push_back(frame.first);
     }
-    for (int region = 0; region < setup->numRegions(); region++) {
+    for (int region = 0; region < setup->sysNumRegion(); region++) {
       // object to fit tracks in a processing region
       KalmanFilter kf(setup, dataFormats_, &kalmanFilterFormats_, &settings_, tmtt_, region, ttTracks);
       // read in and organize input tracks and stubs

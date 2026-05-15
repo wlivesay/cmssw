@@ -2,7 +2,7 @@
 #define L1Trigger_TrackFindingTracklet_TrackFindingProcessor_h
 
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
-#include "L1Trigger/TrackTrigger/interface/Setup.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
 #include "L1Trigger/TrackFindingTracklet/interface/DataFormats.h"
 
 #include <utility>
@@ -18,7 +18,7 @@ namespace trklet {
    */
   class TrackFindingProcessor {
   public:
-    TrackFindingProcessor(const tt::Setup*, const DataFormats*);
+    TrackFindingProcessor(const Setup*, const DataFormats*);
     ~TrackFindingProcessor() = default;
 
     // produce TTTracks
@@ -69,7 +69,7 @@ namespace trklet {
     // produce TTTracks
     void produce(const tt::StreamsTrack&, tt::TTTracks&) const;
     // provides run-time constants
-    const tt::Setup* setup_;
+    const Setup* setup_;
     // provides data formats
     const DataFormats* dataFormats_;
     // storage of tracks

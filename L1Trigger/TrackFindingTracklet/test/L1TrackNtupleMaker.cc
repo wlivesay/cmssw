@@ -55,7 +55,7 @@
 
 ////////////////
 // PHYSICS TOOLS
-#include "L1Trigger/TrackTrigger/interface/Setup.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
 #include "L1Trigger/TrackerTFP/interface/LayerEncoding.h"
 #include "L1Trigger/TrackFindingTracklet/interface/HitPatternHelper.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
@@ -148,9 +148,9 @@ private:
   edm::ESGetToken<TrackerGeometry, TrackerDigiGeometryRecord> getTokenTrackerGeom_;
   edm::ESGetToken<TrackerTopology, TrackerTopologyRcd> getTokenTrackerTopo_;
   edm::ESGetToken<MagneticField, IdealMagneticFieldRecord> getTokenBField_;
-  edm::ESGetToken<hph::Setup, hph::SetupRcd> getTokenHPHSetup_;
-  edm::ESGetToken<tt::Setup, tt::SetupRcd> getTokenSetup_;
-  edm::ESGetToken<trackerTFP::LayerEncoding, trackerTFP::DataFormatsRcd> getTokenLayerEncoding_;
+  edm::ESGetToken<hph::Setup, trackerDTC::SetupRcd> getTokenHPHSetup_;
+  edm::ESGetToken<trklet::Setup, trackerDTC::SetupRcd> getTokenSetup_;
+  edm::ESGetToken<trklet::LayerEncoding, trackerDTC::SetupRcd> getTokenLayerEncoding_;
   //-----------------------------------------------------------------------------------------------
   // tree & branches for mini-ntuple
 
@@ -348,9 +348,9 @@ L1TrackNtupleMaker::L1TrackNtupleMaker(edm::ParameterSet const& iConfig) : confi
   getTokenTrackerGeom_ = esConsumes<TrackerGeometry, TrackerDigiGeometryRecord>();
   getTokenTrackerTopo_ = esConsumes<TrackerTopology, TrackerTopologyRcd>();
   getTokenBField_ = esConsumes<MagneticField, IdealMagneticFieldRecord>();
-  getTokenHPHSetup_ = esConsumes<hph::Setup, hph::SetupRcd>();
-  getTokenSetup_ = esConsumes<tt::Setup, tt::SetupRcd>();
-  getTokenLayerEncoding_ = esConsumes<trackerTFP::LayerEncoding, trackerTFP::DataFormatsRcd>();
+  getTokenHPHSetup_ = esConsumes<hph::Setup, trackerDTC::SetupRcd>();
+  getTokenSetup_ = esConsumes<trklet::Setup, trackerDTC::SetupRcd>();
+  getTokenLayerEncoding_ = esConsumes<trklet::LayerEncoding, trackerDTC::SetupRcd>();
 }
 
 /////////////
@@ -965,14 +965,14 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
   edm::ESHandle<MagneticField> bFieldHandle = iSetup.getHandle(getTokenBField_);
 
   edm::ESHandle<hph::Setup> hphHandle = iSetup.getHandle(getTokenHPHSetup_);
-  edm::ESHandle<tt::Setup> handleSetup = iSetup.getHandle(getTokenSetup_);
-  edm::ESHandle<trackerTFP::LayerEncoding> handleLayerEncoding = iSetup.getHandle(getTokenLayerEncoding_);
+  edm::ESHandle<trklet::Setup> handleSetup = iSetup.getHandle(getTokenSetup_);
+  edm::ESHandle<trklet::LayerEncoding> handleLayerEncoding = iSetup.getHandle(getTokenLayerEncoding_);
 
   const TrackerTopology* const tTopo = tTopoHandle.product();
   const TrackerGeometry* const theTrackerGeom = tGeomHandle.product();
   const hph::Setup* hphSetup = hphHandle.product();
-  const tt::Setup* setup = handleSetup.product();
-  const trackerTFP::LayerEncoding* layerEncoding = handleLayerEncoding.product();
+  const trklet::Setup* setup = handleSetup.product();
+  const trklet::LayerEncoding* layerEncoding = handleLayerEncoding.product();
 
   // Conversion factor curvature radius to Pt.
   const float b_field = bFieldHandle.product()->inTesla(GlobalPoint(0, 0, 0)).z();
@@ -1173,7 +1173,7 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
       float tmp_trk_phi = iterL1Track->phi();
       float tmp_trk_z0 = iterL1Track->z0();  //cm
       float tmp_trk_tanL = iterL1Track->tanL();
-      float tmp_trk_zT = iterL1Track->z0() + setup->chosenRofZ() * iterL1Track->tanL();
+      float tmp_trk_zT = iterL1Track->z0() + setup->regChosenRofZ() * iterL1Track->tanL();
       int tmp_trk_charge = (int)TMath::Sign(1, iterL1Track->rInv());
 
       int nHelixPars = iterL1Track->nFitPars();
@@ -1246,7 +1246,7 @@ void L1TrackNtupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup
       int tmp_trk_etaSector = hph.etaSector();
 
       // layer encoding
-      const TTBV hitPattern((int)iterL1Track->hitPattern(), setup->numLayers());
+      const TTBV hitPattern((int)iterL1Track->hitPattern(), setup->sysNumLayer());
       const vector<int>& le = layerEncoding->layerEncoding(tmp_trk_zT);
       vector<int> layers;
       layers.reserve(hitPattern.size());

@@ -10,10 +10,9 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/Common/interface/Handle.h"
 
-#include "L1Trigger/TrackTrigger/interface/Setup.h"
-#include "L1Trigger/TrackerTFP/interface/LayerEncoding.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
+#include "L1Trigger/TrackFindingTracklet/interface/LayerEncoding.h"
 #include "L1Trigger/TrackFindingTracklet/interface/DataFormats.h"
-#include "L1Trigger/TrackFindingTracklet/interface/ChannelAssignment.h"
 #include "L1Trigger/TrackFindingTracklet/interface/DuplicateRemoval.h"
 #include "SimDataFormats/Associations/interface/TTTypes.h"
 
@@ -48,13 +47,11 @@ namespace trklet {
     // ED output token for tracks
     edm::EDPutTokenT<tt::StreamsTrack> edPutTokenTracks_;
     // Setup token
-    edm::ESGetToken<tt::Setup, tt::SetupRcd> esGetTokenSetup_;
+    edm::ESGetToken<Setup, trackerDTC::SetupRcd> esGetTokenSetup_;
     // LayerEncoding token
-    edm::ESGetToken<trackerTFP::LayerEncoding, trackerTFP::DataFormatsRcd> esGetTokenLayerEncoding_;
+    edm::ESGetToken<LayerEncoding, trackerDTC::SetupRcd> esGetTokenLayerEncoding_;
     // DataFormats token
-    edm::ESGetToken<DataFormats, ChannelAssignmentRcd> esGetTokenDataFormats_;
-    // ChannelAssignment token
-    edm::ESGetToken<ChannelAssignment, ChannelAssignmentRcd> esGetTokenChannelAssignment_;
+    edm::ESGetToken<DataFormats, trackerDTC::SetupRcd> esGetTokenDataFormats_;
   };
 
   ProducerDR::ProducerDR(const edm::ParameterSet& iConfig) {
@@ -70,27 +67,24 @@ namespace trklet {
     esGetTokenSetup_ = esConsumes();
     esGetTokenLayerEncoding_ = esConsumes();
     esGetTokenDataFormats_ = esConsumes();
-    esGetTokenChannelAssignment_ = esConsumes();
   }
 
   void ProducerDR::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     // helper class to store configurations
-    const tt::Setup* setup = &iSetup.getData(esGetTokenSetup_);
+    const Setup* setup = &iSetup.getData(esGetTokenSetup_);
     // helper class to encode layer
-    const trackerTFP::LayerEncoding* layerEncoding = &iSetup.getData(esGetTokenLayerEncoding_);
+    const LayerEncoding* layerEncoding = &iSetup.getData(esGetTokenLayerEncoding_);
     // helper class to extract structured data from tt::Frames
     const DataFormats* dataFormats = &iSetup.getData(esGetTokenDataFormats_);
-    // helper class to assign tracks to channel
-    const ChannelAssignment* channelAssignment = &iSetup.getData(esGetTokenChannelAssignment_);
     // empty DR products
-    tt::StreamsStub streamsStub(setup->numRegions() * setup->numLayers());
-    tt::StreamsTrack streamsTrack(setup->numRegions());
+    tt::StreamsStub streamsStub(setup->sysNumRegion() * setup->tmNumLayers());
+    tt::StreamsTrack streamsTrack(setup->sysNumRegion());
     // read in TBout Product and produce KFin product
     const tt::StreamsStub& stubs = iEvent.get(edGetTokenStubs_);
     const tt::StreamsTrack& tracks = iEvent.get(edGetTokenTracks_);
-    for (int region = 0; region < setup->numRegions(); region++) {
+    for (int region = 0; region < setup->sysNumRegion(); region++) {
       // object to remove duplicated tracks in a processing region
-      DuplicateRemoval dr(setup, layerEncoding, dataFormats, channelAssignment, region);
+      DuplicateRemoval dr(setup, layerEncoding, dataFormats, region);
       // read in and organize input tracks and stubs
       dr.consume(tracks, stubs);
       // fill output products

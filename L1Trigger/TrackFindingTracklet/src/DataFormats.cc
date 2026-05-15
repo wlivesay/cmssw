@@ -19,7 +19,7 @@ namespace trklet {
         formats_(+Variable::end, std::vector<DataFormat*>(+Process::end, nullptr)),
         numUnusedBitsStubs_(+Process::end, TTBV::S_ - 1),
         numUnusedBitsTracks_(+Process::end, TTBV::S_ - 1) {
-    channelAssignment_ = nullptr;
+    setup_ = nullptr;
     countFormats();
     dataFormats_.reserve(numDataFormats_);
   }
@@ -36,8 +36,8 @@ namespace trklet {
   }
 
   // proper constructor
-  DataFormats::DataFormats(const ChannelAssignment* channelAssignment) : DataFormats() {
-    channelAssignment_ = channelAssignment;
+  DataFormats::DataFormats(const Setup* setup) : DataFormats() {
+    setup_ = setup;
     fillDataFormats();
     for (const Process p : Processes)
       for (const Variable v : stubs_[+p])
@@ -51,7 +51,7 @@ namespace trklet {
   template <Variable v, Process p>
   void DataFormats::fillDataFormats() {
     if constexpr (config_[+v][+p] == p) {
-      dataFormats_.emplace_back(makeDataFormat<v, p>(channelAssignment_));
+      dataFormats_.emplace_back(makeDataFormat<v, p>(setup_));
       fillFormats<v, p>();
     }
     if constexpr (++p != Process::end)
@@ -71,150 +71,142 @@ namespace trklet {
   }
 
   template <>
-  DataFormat makeDataFormat<Variable::inv2R, Process::tfp>(const ChannelAssignment* ca) {
+  DataFormat makeDataFormat<Variable::inv2R, Process::tfp>(const Setup* setup) {
     const int width = TTTrack_TrackWord::TrackBitWidths::kRinvSize;
     const double range = -2. * TTTrack_TrackWord::minRinv;
     return DataFormat(true, width, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::phiT, Process::tfp>(const ChannelAssignment* ca) {
+  DataFormat makeDataFormat<Variable::phiT, Process::tfp>(const Setup* setup) {
     const int width = TTTrack_TrackWord::TrackBitWidths::kPhiSize;
     const double range = -2. * TTTrack_TrackWord::minPhi0;
     return DataFormat(true, width, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::cot, Process::tfp>(const ChannelAssignment* ca) {
+  DataFormat makeDataFormat<Variable::cot, Process::tfp>(const Setup* setup) {
     const int width = TTTrack_TrackWord::TrackBitWidths::kTanlSize;
     const double range = -2. * TTTrack_TrackWord::minTanl;
     return DataFormat(true, width, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::zT, Process::tfp>(const ChannelAssignment* ca) {
+  DataFormat makeDataFormat<Variable::zT, Process::tfp>(const Setup* setup) {
     const int width = TTTrack_TrackWord::TrackBitWidths::kZ0Size;
     const double range = -2. * TTTrack_TrackWord::minZ0;
     return DataFormat(true, width, range);
   }
 
   template <>
-  DataFormat makeDataFormat<Variable::inv2R, Process::tm>(const ChannelAssignment* ca) {
-    const tt::Setup* s = ca->setup();
-    const double range = 2. * s->invPtToDphi() / s->minPtCand();
-    const double base = range / static_cast<double>(s->htNumBinsInv2R());
-    return DataFormat(true, base, range);
+  DataFormat makeDataFormat<Variable::inv2R, Process::tm>(const Setup* setup) {
+    const double range = 2. * setup->sysInvPtToDphi() / setup->regMinPt();
+    const int width = setup->tmWidthInv2R();
+    return DataFormat(true, width, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::phiT, Process::tm>(const ChannelAssignment* ca) {
-    const tt::Setup* s = ca->setup();
-    const double range = 2. * M_PI / s->numRegions();
-    const double base = range / static_cast<double>(s->gpNumBinsPhiT() * s->htNumBinsPhiT());
-    return DataFormat(true, base, range);
+  DataFormat makeDataFormat<Variable::phiT, Process::tm>(const Setup* setup) {
+    const double range = 2. * M_PI / setup->sysNumRegion();
+    const int width = setup->tmWidthPhiT();
+    return DataFormat(true, width, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::zT, Process::tm>(const ChannelAssignment* ca) {
-    const tt::Setup* s = ca->setup();
-    const double range = 2. * std::sinh(s->maxEta()) * s->chosenRofZ();
-    const double base = range / static_cast<double>(s->gpNumBinsZT());
-    return DataFormat(true, base, range);
+  DataFormat makeDataFormat<Variable::zT, Process::tm>(const Setup* setup) {
+    const double range = 2. * std::sinh(setup->regMaxEta()) * setup->regChosenRofZ();
+    const int width = setup->tmWidthZT();
+    return DataFormat(true, width, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::cot, Process::tm>(const ChannelAssignment* ca) {
-    const tt::Setup* s = ca->setup();
-    const DataFormat zT = makeDataFormat<Variable::zT, Process::tm>(ca);
-    const double range = (zT.range() + 2. * s->beamWindowZ()) / s->chosenRofZ();
-    const double base = (zT.base() + 2. * s->beamWindowZ()) / s->chosenRofZ();
+  DataFormat makeDataFormat<Variable::cot, Process::tm>(const Setup* setup) {
+    const DataFormat zT = makeDataFormat<Variable::zT, Process::tm>(setup);
+    const double range = (zT.range() + 2. * setup->regBeamWindowZ()) / setup->regChosenRofZ();
+    const double base = (zT.base() + 2. * setup->regBeamWindowZ()) / setup->regChosenRofZ();
     return DataFormat(true, base, range);
   }
 
   template <>
-  DataFormat makeDataFormat<Variable::stubId, Process::tm>(const ChannelAssignment* ca) {
-    const int width = ca->tmWidthStubId() + 1;
+  DataFormat makeDataFormat<Variable::stubId, Process::tm>(const Setup* setup) {
+    const int width = setup->tmWidthStubId() + 1;
     return DataFormat(false, width);
   }
   template <>
-  DataFormat makeDataFormat<Variable::r, Process::tm>(const ChannelAssignment* ca) {
-    const tt::Setup* s = ca->setup();
-    const DataFormat phiT = makeDataFormat<Variable::phiT, Process::tm>(ca);
-    const DataFormat inv2R = makeDataFormat<Variable::inv2R, Process::tm>(ca);
-    const double range = 2. * s->maxRphi();
+  DataFormat makeDataFormat<Variable::r, Process::tm>(const Setup* setup) {
+    const DataFormat phiT = makeDataFormat<Variable::phiT, Process::tm>(setup);
+    const DataFormat inv2R = makeDataFormat<Variable::inv2R, Process::tm>(setup);
+    const double range = 2. * setup->tbMaxRphi();
     const double baseShifted = phiT.base() / inv2R.base();
-    const int shift = std::ceil(std::log2(range / baseShifted)) - s->tmttWidthR();
+    const int shift = std::ceil(std::log2(range / baseShifted)) - setup->glWidthR();
     const double base = baseShifted * std::pow(2., shift);
     return DataFormat(true, base, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::phi, Process::tm>(const ChannelAssignment* ca) {
-    const tt::Setup* s = ca->setup();
-    const DataFormat phiT = makeDataFormat<Variable::phiT, Process::tm>(ca);
-    const DataFormat inv2R = makeDataFormat<Variable::inv2R, Process::tm>(ca);
-    const double rangeMin = s->baseRegion() + s->maxRphi() * inv2R.range();
-    const double range = phiT.base() + s->maxRphi() * inv2R.base();
-    const int shift = std::ceil(std::log2(rangeMin / phiT.base())) - s->tmttWidthPhi();
+  DataFormat makeDataFormat<Variable::phi, Process::tm>(const Setup* setup) {
+    const DataFormat phiT = makeDataFormat<Variable::phiT, Process::tm>(setup);
+    const DataFormat inv2R = makeDataFormat<Variable::inv2R, Process::tm>(setup);
+    const double rangeMin = setup->regRangePhiT() + setup->tbMaxRphi() * inv2R.range();
+    const double range = phiT.base() + setup->tbMaxRphi() * inv2R.base();
+    const int shift = std::ceil(std::log2(rangeMin / phiT.base())) - setup->glWidthPhi();
     const double base = phiT.base() * std::pow(2., shift);
     return DataFormat(true, base, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::z, Process::tm>(const ChannelAssignment* ca) {
-    const tt::Setup* s = ca->setup();
-    const DataFormat zT = makeDataFormat<Variable::zT, Process::tm>(ca);
-    const DataFormat cot = makeDataFormat<Variable::cot, Process::tm>(ca);
-    const double rangeMin = 2. * s->halfLength();
-    const double range = zT.base() + s->maxRz() * cot.base();
-    const int shift = std::ceil(std::log2(rangeMin / zT.base())) - s->tmttWidthZ();
+  DataFormat makeDataFormat<Variable::z, Process::tm>(const Setup* setup) {
+    const DataFormat zT = makeDataFormat<Variable::zT, Process::tm>(setup);
+    const DataFormat cot = makeDataFormat<Variable::cot, Process::tm>(setup);
+    const double rangeMin = 2. * setup->sysHalfLength();
+    const double range = zT.base() + setup->tbMaxRz() * cot.base();
+    const int shift = std::ceil(std::log2(rangeMin / zT.base())) - setup->glWidthZ();
     const double base = zT.base() * std::pow(2., shift);
     return DataFormat(true, base, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::dPhi, Process::tm>(const ChannelAssignment* ca) {
-    const tt::Setup* s = ca->setup();
-    const DataFormat phi = makeDataFormat<Variable::phi, Process::tm>(ca);
-    const DataFormat inv2R = makeDataFormat<Variable::inv2R, Process::tm>(ca);
-    const double range =
-        .5 * s->pitchRowPS() / s->innerRadius() + .25 * (s->pitchCol2S() + s->scattering()) * inv2R.range();
+  DataFormat makeDataFormat<Variable::dPhi, Process::tm>(const Setup* setup) {
+    const DataFormat phi = makeDataFormat<Variable::phi, Process::tm>(setup);
+    const DataFormat inv2R = makeDataFormat<Variable::inv2R, Process::tm>(setup);
+    const int width = setup->tmWidthDPhi();
     const double base = phi.base();
-    return DataFormat(false, base, range);
+    const double range = std::pow(2, width) * base;
+    return DataFormat(false, width, base, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::dZ, Process::tm>(const ChannelAssignment* ca) {
-    const tt::Setup* s = ca->setup();
-    const DataFormat z = makeDataFormat<Variable::z, Process::tm>(ca);
-    const double range = .5 * s->pitchCol2S() * std::sinh(s->maxEta());
+  DataFormat makeDataFormat<Variable::dZ, Process::tm>(const Setup* setup) {
+    const DataFormat z = makeDataFormat<Variable::z, Process::tm>(setup);
+    const int width = setup->tmWidthDZ();
     const double base = z.base();
-    return DataFormat(false, base, range);
+    const double range = std::pow(2, width) * base;
+    return DataFormat(false, width, base, range);
   }
 
   template <>
-  DataFormat makeDataFormat<Variable::inv2R, Process::kf>(const ChannelAssignment* ca) {
-    const DataFormat tfp = makeDataFormat<Variable::inv2R, Process::tfp>(ca);
-    const DataFormat tm = makeDataFormat<Variable::inv2R, Process::tm>(ca);
+  DataFormat makeDataFormat<Variable::inv2R, Process::kf>(const Setup* setup) {
+    const DataFormat tfp = makeDataFormat<Variable::inv2R, Process::tfp>(setup);
+    const DataFormat tm = makeDataFormat<Variable::inv2R, Process::tm>(setup);
     const double range = tm.range();
     const int shift = std::floor(std::log2(.5 * tfp.base() / tm.base()));
     const double base = tm.base() * std::pow(2., shift);
     return DataFormat(true, base, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::phiT, Process::kf>(const ChannelAssignment* ca) {
-    const DataFormat tfp = makeDataFormat<Variable::phiT, Process::tfp>(ca);
-    const DataFormat tm = makeDataFormat<Variable::phiT, Process::tm>(ca);
+  DataFormat makeDataFormat<Variable::phiT, Process::kf>(const Setup* setup) {
+    const DataFormat tfp = makeDataFormat<Variable::phiT, Process::tfp>(setup);
+    const DataFormat tm = makeDataFormat<Variable::phiT, Process::tm>(setup);
     const double range = tm.range();
     const int shift = std::floor(std::log2(tfp.base() / tm.base()));
     const double base = tm.base() * std::pow(2., shift);
     return DataFormat(true, base, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::cot, Process::kf>(const ChannelAssignment* ca) {
-    const DataFormat tfp = makeDataFormat<Variable::cot, Process::tfp>(ca);
-    const DataFormat cot = makeDataFormat<Variable::cot, Process::tm>(ca);
-    const DataFormat z = makeDataFormat<Variable::z, Process::tm>(ca);
-    const DataFormat r = makeDataFormat<Variable::r, Process::tm>(ca);
+  DataFormat makeDataFormat<Variable::cot, Process::kf>(const Setup* setup) {
+    const DataFormat tfp = makeDataFormat<Variable::cot, Process::tfp>(setup);
+    const DataFormat cot = makeDataFormat<Variable::cot, Process::tm>(setup);
+    const DataFormat z = makeDataFormat<Variable::z, Process::tm>(setup);
+    const DataFormat r = makeDataFormat<Variable::r, Process::tm>(setup);
     const double range = cot.range();
     const int shift = std::floor(std::log2(tfp.base() / z.base() * r.base()));
     const double base = z.base() / r.base() * std::pow(2., shift);
     return DataFormat(true, base, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::zT, Process::kf>(const ChannelAssignment* ca) {
-    const DataFormat tfp = makeDataFormat<Variable::zT, Process::tfp>(ca);
-    const DataFormat tm = makeDataFormat<Variable::zT, Process::tm>(ca);
+  DataFormat makeDataFormat<Variable::zT, Process::kf>(const Setup* setup) {
+    const DataFormat tfp = makeDataFormat<Variable::zT, Process::tfp>(setup);
+    const DataFormat tm = makeDataFormat<Variable::zT, Process::tm>(setup);
     const double range = tm.range();
     const int shift = std::floor(std::log2(tfp.base() / tm.base()));
     const double base = tm.base() * pow(2., shift);
@@ -222,29 +214,29 @@ namespace trklet {
   }
 
   template <>
-  DataFormat makeDataFormat<Variable::chi20, Process::tq>(const ChannelAssignment* ca) {
-    const int shift = ca->tqBaseShiftChi20();
-    const int width = ca->tqWidthChi20();
+  DataFormat makeDataFormat<Variable::chi20, Process::tq>(const Setup* setup) {
+    const int shift = setup->tqBaseShiftChi20();
+    const int width = setup->tqWidthChi20();
     const double base = std::pow(2., shift);
     const double range = base * std::pow(2, width);
     return DataFormat(false, base, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::chi21, Process::tq>(const ChannelAssignment* ca) {
-    const int shift = ca->tqBaseShiftChi21();
-    const int width = ca->tqWidthChi21();
+  DataFormat makeDataFormat<Variable::chi21, Process::tq>(const Setup* setup) {
+    const int shift = setup->tqBaseShiftChi21();
+    const int width = setup->tqWidthChi21();
     const double base = std::pow(2., shift);
     const double range = base * std::pow(2, width);
     return DataFormat(false, base, range);
   }
   template <>
-  DataFormat makeDataFormat<Variable::mva, Process::tq>(const ChannelAssignment* ca) {
-    const int width = ca->tqWidthMVA();
+  DataFormat makeDataFormat<Variable::mva, Process::tq>(const Setup* setup) {
+    const int width = setup->tqWidthMVA();
     return DataFormat(false, width);
   }
   template <>
-  DataFormat makeDataFormat<Variable::reversedHitPattern, Process::tq>(const ChannelAssignment* ca) {
-    const int width = ca->setup()->numLayers();
+  DataFormat makeDataFormat<Variable::reversedHitPattern, Process::tq>(const Setup* setup) {
+    const int width = setup->sysNumLayer();
     return DataFormat(false, width);
   }
 

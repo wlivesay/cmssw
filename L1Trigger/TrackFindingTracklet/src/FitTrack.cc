@@ -989,45 +989,45 @@ void FitTrack::execute(deque<string>& streamTrackRaw,
       streamTrackRaw.emplace_back(valid + seed + rinv + phi0 + z0 + t);
 
       // convert projected stubs
-      unsigned int ihit(0);
+      TTBV projectionLayers(0, N_LAYER + N_DISK);
       for (unsigned int ilayer = 0; ilayer < N_LAYER + N_DISK; ilayer++) {
-        if (bestTracklet->match(ilayer)) {
-          const Residual& resid = bestTracklet->resid(ilayer);
-          // create bit accurate 64 bit word
-          // Need to extract the corrected r value
-          string r = resid.stubptr()->r().str();
-          const string& phi = resid.fpgaphiresid().str();
-          const string& rz = resid.fpgarzresid().str();
-          const L1TStub* stub = resid.stubptr()->l1tstub();
-          static constexpr int widthDisk2Sidentifier = 8;
-          bool disk2S = (stub->disk() != 0) && (stub->isPSmodule() == 0);
-          if (disk2S) {
-            r = string(widthDisk2Sidentifier, '0') + r;
-            // edm::LogVerbatim("Tracklet") << "2s stub : " << r;
-          }
-          bool diskPS = (stub->disk() != 0) && (stub->isPSmodule() != 0);
-          if (diskPS) {
-            //  string oldr = r;
-            FPGAWord tmp(resid.stubptr()->rvalue(), 12);
-            r = tmp.str();
-            // edm::LogVerbatim("Tracklet") << "old r: "<< oldr << "new r: " << r;
-          }
-          const string& stubId = resid.fpgastubid().str();
-          // store seed, L1TStub, and bit accurate 64 bit word in clock accurate output
-          streamsStubRaw[ihit++].emplace_back(seedType, *stub, valid + stubId + r + phi + rz);
+        if (!bestTracklet->match(ilayer))
+          continue;
+        projectionLayers.set(ilayer);
+        const Residual& resid = bestTracklet->resid(ilayer);
+        // create bit accurate 64 bit word
+        // Need to extract the corrected r value
+        string r = resid.stubptr()->r().str();
+        const string& phi = resid.fpgaphiresid().str();
+        const string& rz = resid.fpgarzresid().str();
+        const L1TStub* stub = resid.stubptr()->l1tstub();
+        static constexpr int widthDisk2Sidentifier = 8;
+        bool disk2S = (stub->disk() != 0) && (stub->isPSmodule() == 0);
+        if (disk2S) {
+          r = string(widthDisk2Sidentifier, '0') + r;
+          // edm::LogVerbatim("Tracklet") << "2s stub : " << r;
         }
+        bool diskPS = (stub->disk() != 0) && (stub->isPSmodule() != 0);
+        if (diskPS) {
+          //  string oldr = r;
+          FPGAWord tmp(resid.stubptr()->rvalue(), 12);
+          r = tmp.str();
+          // edm::LogVerbatim("Tracklet") << "old r: "<< oldr << "new r: " << r;
+        }
+        const string& stubId = resid.fpgastubid().str();
+        // store seed, L1TStub, and bit accurate 64 bit word in clock accurate output
+        streamsStubRaw[ilayer].emplace_back(seedType, *stub, valid + stubId + r + phi + rz);
       }
       // convert seed stubs
       const string& stubId0 = bestTracklet->innerFPGAStub()->phiregionaddressstr();
       const L1TStub* stub0 = bestTracklet->innerFPGAStub()->l1tstub();
-      streamsStubRaw[ihit++].emplace_back(seedType, *stub0, valid + stubId0);
+      streamsStubRaw[N_LAYER + N_DISK].emplace_back(seedType, *stub0, valid + stubId0);
       const string& stubId1 = bestTracklet->outerFPGAStub()->phiregionaddressstr();
       const L1TStub* stub1 = bestTracklet->outerFPGAStub()->l1tstub();
-      streamsStubRaw[ihit++].emplace_back(seedType, *stub1, valid + stubId1);
+      streamsStubRaw[N_LAYER + N_DISK + 1].emplace_back(seedType, *stub1, valid + stubId1);
       // fill all layers that have no stubs with gaps
-      while (ihit < streamsStubRaw.size()) {
-        streamsStubRaw[ihit++].emplace_back();
-      }
+      for (int ilayer : projectionLayers.ids(false))
+        streamsStubRaw[ilayer].emplace_back();
     }
 
   } while (bestTracklet != nullptr && count < settings_.maxStep("TB"));

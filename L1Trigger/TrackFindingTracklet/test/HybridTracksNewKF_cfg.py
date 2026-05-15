@@ -38,7 +38,8 @@ process.load( 'L1Trigger.TrackFindingTracklet.Producer_cff' )
 from L1Trigger.TrackFindingTracklet.Customize_cff import *
 fwConfig( process )
 oldKFConfig( process )
-process.l1tTTTracksFromTrackletEmulation.readMoreMcTruth = False
+process.TrackFindingTrackletSetup.TM.UseTTStubResiduals = False
+process.TrackFindingTrackletSetup.TM.UseTTStubParameters = False
 
 # build schedule
 process.mc       = cms.Sequence( process.StubAssociator  + process.AnalyzerMC       )

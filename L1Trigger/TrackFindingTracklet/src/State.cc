@@ -10,11 +10,11 @@ namespace trklet {
 
   //
   State::Stub::Stub(KalmanFilterFormats* kff, const tt::FrameStub& frame) : stubDR_(frame, kff->dataFormats()) {
-    const tt::Setup* setup = kff->setup();
-    H12_ = kff->format(VariableKF::H12).digi(stubDR_.r() + setup->chosenRofPhi() - setup->chosenRofZ());
-    H04_ = stubDR_.r() + setup->chosenRofPhi();
-    v0_ = kff->format(VariableKF::v0).digi(pow(2. * stubDR_.dPhi(), 2));
-    v1_ = kff->format(VariableKF::v1).digi(pow(2. * stubDR_.dZ(), 2));
+    const Setup* setup = kff->setup();
+    H12_ = kff->format(VariableKF::H12).digi(stubDR_.r() + setup->regChosenRofPhi() - setup->regChosenRofZ());
+    H04_ = stubDR_.r() + setup->regChosenRofPhi();
+    v0_ = kff->format(VariableKF::v0).digi(std::pow(stubDR_.dPhi(), 2) / 3.);
+    v1_ = kff->format(VariableKF::v1).digi(std::pow(stubDR_.dZ(), 2) / 3.);
   }
 
   // proto state constructor
@@ -25,8 +25,8 @@ namespace trklet {
         stubs_(stubs),
         parent_(nullptr),
         stub_(nullptr),
-        hitPattern_(0, setup_->numLayers()),
-        trackPattern_(0, setup_->numLayers()),
+        hitPattern_(0, setup_->sysNumLayer()),
+        trackPattern_(0, setup_->sysNumLayer()),
         x0_(0.),
         x1_(0.),
         x2_(0.),
@@ -72,8 +72,8 @@ namespace trklet {
     stub_ = nullptr;
     if (hitPattern_.count() >= setup_->kfMinLayers() || hitPattern_.count() == setup_->kfMaxLayers())
       return;
-    const int nextLayer = trackPattern_.plEncode(layer + 1, setup_->numLayers());
-    if (nextLayer == setup_->numLayers())
+    const int nextLayer = trackPattern_.plEncode(layer + 1, setup_->sysNumLayer());
+    if (nextLayer == setup_->sysNumLayer())
       return;
     stub_ = stubs_[nextLayer];
     hitPattern_.set(nextLayer);
@@ -82,7 +82,7 @@ namespace trklet {
   // combinatoric and seed building state constructor
   State::State(State* state, State* parent, int layer) : State(state) {
     parent_ = parent;
-    hitPattern_ = parent ? parent->hitPattern() : TTBV(0, setup_->numLayers());
+    hitPattern_ = parent ? parent->hitPattern() : TTBV(0, setup_->sysNumLayer());
     stub_ = stubs_[layer];
     hitPattern_.set(layer);
   }
@@ -91,7 +91,7 @@ namespace trklet {
   State* State::update(std::deque<State>& states, int layer) {
     if (!hitPattern_.test(layer) || hitPattern_.count() > setup_->kfNumSeedStubs())
       return this;
-    const int nextLayer = trackPattern_.plEncode(layer + 1, setup_->numLayers());
+    const int nextLayer = trackPattern_.plEncode(layer + 1, setup_->sysNumLayer());
     states.emplace_back(this, this, nextLayer);
     return &states.back();
   }
@@ -102,11 +102,11 @@ namespace trklet {
     if (!hitPattern_.test(layer) || hitPattern_.count() > setup_->kfNumSeedStubs())
       return nullptr;
     // skip layers
-    const int nextLayer = trackPattern_.plEncode(layer + 1, setup_->numLayers());
+    const int nextLayer = trackPattern_.plEncode(layer + 1, setup_->sysNumLayer());
     const int maxSeedStubs = hitPattern_.count(0, layer) + trackPattern_.count(nextLayer, setup_->kfMaxSeedingLayer());
     if (maxSeedStubs < setup_->kfNumSeedStubs())
       return nullptr;
-    const int maxStubs = maxSeedStubs + trackPattern_.count(setup_->kfMaxSeedingLayer(), setup_->numLayers());
+    const int maxStubs = maxSeedStubs + trackPattern_.count(setup_->kfMaxSeedingLayer(), setup_->sysNumLayer());
     if (maxStubs < setup_->kfMinLayers())
       return nullptr;
     states.emplace_back(this, parent_, nextLayer);
@@ -127,11 +127,11 @@ namespace trklet {
     if (hitPattern_.pmEncode() != layer)
       return nullptr;
     // handle skip
-    const int nextLayer = trackPattern_.plEncode(layer + 1, setup_->numLayers());
-    if (nextLayer == setup_->numLayers())
+    const int nextLayer = trackPattern_.plEncode(layer + 1, setup_->sysNumLayer());
+    if (nextLayer == setup_->sysNumLayer())
       return nullptr;
     // not enough layer left
-    if (hitPattern_.count() - 1 + trackPattern_.count(nextLayer, setup_->numLayers()) < setup_->kfMinLayers())
+    if (hitPattern_.count() - 1 + trackPattern_.count(nextLayer, setup_->sysNumLayer()) < setup_->kfMinLayers())
       return nullptr;
     states.emplace_back(this, parent_, nextLayer);
     return &states.back();

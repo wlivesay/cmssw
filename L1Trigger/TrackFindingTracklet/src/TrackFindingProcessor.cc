@@ -10,9 +10,9 @@
 
 namespace trklet {
 
-  TrackFindingProcessor::TrackFindingProcessor(const tt::Setup* setup, const DataFormats* dataFormats)
+  TrackFindingProcessor::TrackFindingProcessor(const Setup* setup, const DataFormats* dataFormats)
       : setup_(setup), dataFormats_(dataFormats) {
-    bfield_ = setup_->bField();
+    bfield_ = setup_->sysBField();
   }
 
   //
@@ -33,7 +33,7 @@ namespace trklet {
     const double baseZ0 = rangeZ0 / std::pow(2., TTTrack_TrackWord::TrackBitWidths::kZ0Size);
     const double baseD0 = rangeD0 / std::pow(2., TTTrack_TrackWord::TrackBitWidths::kD0Size);
     // convert bits into nice formats
-    const tt::Setup* setup = df->setup();
+    const Setup* setup = df->setup();
     const TrackKF trackKF(frameTrackKF, df);
     invR_ = -2. * trackKF.inv2R();
     cot_ = trackKF.cot();
@@ -42,10 +42,10 @@ namespace trklet {
     mva_ = trackTQ.mva();
     channel_ = cot_ < 0. ? 1 : 0;
     z0_ = df->format(Variable::zT, Process::kf)
-              .digi(trackKF.zT() - cot_ * df->format(Variable::r, Process::kf).digi(setup->chosenRofZ()));
-    phi0_ =
-        df->format(Variable::phiT, Process::kf)
-            .digi(trackKF.phiT() - trackKF.inv2R() * df->format(Variable::r, Process::kf).digi(setup->chosenRofPhi()));
+              .digi(trackKF.zT() - cot_ * df->format(Variable::r, Process::kf).digi(setup->regChosenRofZ()));
+    phi0_ = df->format(Variable::phiT, Process::kf)
+                .digi(trackKF.phiT() -
+                      trackKF.inv2R() * df->format(Variable::r, Process::kf).digi(setup->regChosenRofPhi()));
     // base transforms
     invR_ = redigi(invR_, 2. * df->format(Variable::inv2R, Process::kf).base(), baseInvR, setup->widthDSPbu());
     phi0_ = redigi(phi0_, df->format(Variable::phiT, Process::kf).base(), basePhi0, setup->widthDSPbu());
@@ -131,10 +131,10 @@ namespace trklet {
       nTracks += std::accumulate(tracks.begin(), tracks.end(), 0, valid);
     tracks_.reserve(nTracks / 2);
     // convert input data
-    for (int region = 0; region < setup_->numRegions(); region++) {
+    for (int region = 0; region < setup_->sysNumRegion(); region++) {
       const int offsetTQ = region * setup_->tqNumChannel();
       const int offsetTFP = region * setup_->tfpNumChannel();
-      const int offsetStub = region * setup_->numLayers();
+      const int offsetStub = region * setup_->sysNumLayer();
       const tt::StreamTrack& streamKF = inputs[offsetTQ + 0];
       const tt::StreamTrack& streamTQ = inputs[offsetTQ + 1];
       for (int channel = 0; channel < setup_->tfpNumChannel(); channel++)
@@ -145,8 +145,8 @@ namespace trklet {
         if (frameTrackKF.first.isNull())
           continue;
         std::vector<TTStubRef> ttStubRefs;
-        ttStubRefs.reserve(setup_->numLayers());
-        for (int layer = 0; layer < setup_->numLayers(); layer++) {
+        ttStubRefs.reserve(setup_->sysNumLayer());
+        for (int layer = 0; layer < setup_->sysNumLayer(); layer++) {
           const TTStubRef& ttStubRef = stubs[offsetStub + layer][frame].first;
           if (ttStubRef.isNonnull())
             ttStubRefs.push_back(ttStubRef);
@@ -207,8 +207,8 @@ namespace trklet {
         output[i * 3 + 2].second = (B1 + B2).bs();
       }
       // perform truncation
-      if (setup_->enableTruncation() && static_cast<int>(output.size()) > setup_->numFramesIOHigh())
-        output.resize(setup_->numFramesIOHigh());
+      if (setup_->enableTruncation() && static_cast<int>(output.size()) > setup_->sysNumFrames())
+        output.resize(setup_->sysNumFrames());
       outputs[channel] = tt::StreamTrack(output.begin(), output.end());
     }
   }
@@ -236,7 +236,7 @@ namespace trklet {
       // TTTrack conversion
       const int region = ttTrackRef->phiSector();
       const double aRinv = it->invR_;
-      const double aphi = tt::deltaPhi(it->phi0_ + region * setup_->baseRegion());
+      const double aphi = tt::deltaPhi(it->phi0_ + region * setup_->regRangePhiT());
       const double aTanLambda = it->cot_;
       const double az0 = it->z0_;
       const double ad0 = it->d0_;

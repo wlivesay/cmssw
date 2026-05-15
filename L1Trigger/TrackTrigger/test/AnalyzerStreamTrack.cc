@@ -55,7 +55,7 @@ namespace tt {
     // ED output token for stub association for tracking efficiency
     edm::EDGetTokenT<StubAssociation> edGetTokenEff_;
     // Associator token
-    edm::ESGetToken<Associator, SetupRcd> esGetTokenAssociator_;
+    edm::ESGetToken<Associator, trackerDTC::SetupRcd> esGetTokenAssociator_;
     // enables analyze of TPs
     bool useMCTruth_;
     // stream name to be analyzed

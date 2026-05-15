@@ -11,8 +11,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "DataFormats/Common/interface/Handle.h"
 
-#include "L1Trigger/TrackTrigger/interface/Setup.h"
-#include "L1Trigger/TrackFindingTracklet/interface/ChannelAssignment.h"
+#include "L1Trigger/TrackFindingTracklet/interface/Setup.h"
 #include "L1Trigger/TrackFindingTracklet/interface/DataFormats.h"
 #include "DataFormats/L1TrackTrigger/interface/TTTypes.h"
 
@@ -46,11 +45,9 @@ namespace trklet {
     // ED output token for tracks
     edm::EDPutTokenT<tt::StreamsTrack> edPutTokenTracks_;
     // Setup token
-    edm::ESGetToken<tt::Setup, tt::SetupRcd> esGetTokenSetup_;
+    edm::ESGetToken<Setup, trackerDTC::SetupRcd> esGetTokensetup;
     // DataFormats token
-    edm::ESGetToken<DataFormats, ChannelAssignmentRcd> esGetTokenDataFormats_;
-    // ChannelAssignment token
-    edm::ESGetToken<ChannelAssignment, ChannelAssignmentRcd> esGetTokenChannelAssignment_;
+    edm::ESGetToken<DataFormats, trackerDTC::SetupRcd> esGetTokenDataFormats_;
   };
 
   ProducerFakeTM::ProducerFakeTM(const edm::ParameterSet& iConfig) {
@@ -62,35 +59,34 @@ namespace trklet {
     edPutTokenStubs_ = produces(branchStubs);
     edPutTokenTracks_ = produces(branchTracks);
     // book ES products
-    esGetTokenSetup_ = esConsumes();
+    esGetTokensetup = esConsumes();
     esGetTokenDataFormats_ = esConsumes();
-    esGetTokenChannelAssignment_ = esConsumes();
   }
 
   void ProducerFakeTM::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
     // helper class to store configurations
-    const tt::Setup* setup = &iSetup.getData(esGetTokenSetup_);
+    const Setup* setup = &iSetup.getData(esGetTokensetup);
     // helper class to extract structured data from tt::Frames
     const DataFormats* dataFormats = &iSetup.getData(esGetTokenDataFormats_);
-    // helper class to assign tracks to channel
-    const ChannelAssignment* channelAssignment = &iSetup.getData(esGetTokenChannelAssignment_);
     // empty output products and prep
-    std::vector<std::set<TTStubRef>> ttStubRefs(setup->numRegions() * channelAssignment->tmNumLayers());
-    std::vector<int> sizes(setup->numRegions(), 0);
+    std::vector<std::set<TTStubRef>> ttStubRefs(setup->sysNumRegion() * setup->tmNumLayers());
+    std::vector<int> sizes(setup->sysNumRegion(), 0);
     for (const TTTrack<Ref_Phase2TrackerDigi_>& ttTrack : iEvent.get(edGetTokenTracks_)) {
-      const int offset = ttTrack.phiSector() * channelAssignment->tmNumLayers();
+      const int offset = ttTrack.phiSector() * setup->tmNumLayers();
       sizes[ttTrack.phiSector()]++;
-      for (const TTStubRef& ttStubRef : ttTrack.getStubRefs())
-        ttStubRefs[offset + setup->trackletLayerId(ttStubRef)].insert(ttStubRef);
+      for (const TTStubRef& ttStubRef : ttTrack.getStubRefs()) {
+        const trackerDTC::SensorModule* sm = setup->sensorModule(ttStubRef);
+        ttStubRefs[offset + sm->layerIndexCombined()].insert(ttStubRef);
+      }
     }
-    tt::StreamsTrack streamsTrack(setup->numRegions());
-    for (int iRegion = 0; iRegion < setup->numRegions(); iRegion++)
+    tt::StreamsTrack streamsTrack(setup->sysNumRegion());
+    for (int iRegion = 0; iRegion < setup->sysNumRegion(); iRegion++)
       streamsTrack.reserve(sizes[iRegion]);
-    tt::StreamsStub streamsStub(setup->numRegions() * channelAssignment->tmNumLayers());
-    for (int iRegion = 0; iRegion < setup->numRegions(); iRegion++) {
-      const int offset = iRegion * channelAssignment->tmNumLayers();
+    tt::StreamsStub streamsStub(setup->sysNumRegion() * setup->tmNumLayers());
+    for (int iRegion = 0; iRegion < setup->sysNumRegion(); iRegion++) {
+      const int offset = iRegion * setup->tmNumLayers();
       const int size = sizes[iRegion];
-      for (int iLayer = 0; iLayer < channelAssignment->tmNumLayers(); iLayer++)
+      for (int iLayer = 0; iLayer < setup->tmNumLayers(); iLayer++)
         streamsStub[offset + iLayer].reserve(size);
     }
     // process TTTracks
@@ -102,7 +98,7 @@ namespace trklet {
     for (int iTrack = 0; iTrack < static_cast<int>(handle->size()); iTrack++) {
       const TTTrackRef ttTrackRef(handle, iTrack);
       const int iRegion = ttTrackRef->phiSector();
-      const double phiR = iRegion * setup->baseRegion();
+      const double phiR = iRegion * setup->regRangePhiT();
       // track parameter
       const double d0 = -ttTrackRef->d0();
       double inv2R = -.5 * ttTrackRef->rInv();
@@ -111,10 +107,10 @@ namespace trklet {
       double z0 = ttTrackRef->z0();
       double R = .5 / inv2R;
       double R0 = R + d0;
-      double phiT = phi0 + std::asin((setup->chosenRofPhi() * setup->chosenRofPhi() + R0 * R0 - R * R) / 2. /
-                                     setup->chosenRofPhi() / R0);
+      double phiT = phi0 + std::asin((setup->regChosenRofPhi() * setup->regChosenRofPhi() + R0 * R0 - R * R) / 2. /
+                                     setup->regChosenRofPhi() / R0);
       double zT = z0 + std::abs(R) * cot *
-                           std::acos((R * R + R0 * R0 - setup->chosenRofZ() * setup->chosenRofZ()) / 2. / R / R0);
+                           std::acos((R * R + R0 * R0 - setup->regChosenRofZ() * setup->regChosenRofZ()) / 2. / R / R0);
       // range checks
       const bool validInv2R = dataFormats->format(Variable::inv2R, Process::tm).inRange(inv2R);
       const bool validPhiT = dataFormats->format(Variable::phiT, Process::tm).inRange(phiT);
@@ -122,33 +118,33 @@ namespace trklet {
       if (!validInv2R || !validPhiT || !validZT)
         continue;
       const TrackTM trackTM(ttTrackRef, dataFormats, inv2R, phiT, zT);
-      std::vector<StubTM*> stubs(channelAssignment->tmNumLayers(), nullptr);
+      std::vector<StubTM*> stubs(setup->tmNumLayers(), nullptr);
       // digitised track parameter
       inv2R = dataFormats->format(Variable::inv2R, Process::tm).digi(inv2R);
       phiT = dataFormats->format(Variable::phiT, Process::tm).digi(phiT);
-      cot = dataFormats->format(Variable::zT, Process::tm).digi(zT) / setup->chosenRofZ();
+      cot = dataFormats->format(Variable::zT, Process::tm).digi(zT) / setup->regChosenRofZ();
       zT = dataFormats->format(Variable::zT, Process::tm).digi(zT);
       R = .5 / inv2R;
       R0 = R + d0;
-      phi0 = phiT - std::asin((setup->chosenRofPhi() * setup->chosenRofPhi() + R0 * R0 - R * R) / 2. /
-                              setup->chosenRofPhi() / R0);
-      z0 = zT -
-           std::abs(R) * cot * std::acos((R * R + R0 * R0 - setup->chosenRofZ() * setup->chosenRofZ()) / 2. / R / R0);
+      phi0 = phiT - std::asin((setup->regChosenRofPhi() * setup->regChosenRofPhi() + R0 * R0 - R * R) / 2. /
+                              setup->regChosenRofPhi() / R0);
+      z0 = zT - std::abs(R) * cot *
+                    std::acos((R * R + R0 * R0 - setup->regChosenRofZ() * setup->regChosenRofZ()) / 2. / R / R0);
       // process stubs
-      const int offset = iRegion * channelAssignment->tmNumLayers();
-      TTBV hitPattern(0, channelAssignment->tmNumLayers());
+      const int offset = iRegion * setup->tmNumLayers();
+      TTBV hitPattern(0, setup->tmNumLayers());
       for (const TTStubRef& ttStubRef : ttTrackRef->getStubRefs()) {
-        const int iLayer = setup->trackletLayerId(ttStubRef);
+        const trackerDTC::SensorModule* sm = setup->sensorModule(ttStubRef);
+        const int iLayer = sm->layerIndexCombined();
         if (hitPattern.test(iLayer))
           continue;
         // stub parameter
         const std::set<TTStubRef>& stubIds = ttStubRefs[offset + iLayer];
-        tt::SensorModule* sm = setup->sensorModule(ttStubRef);
-        const GlobalPoint gp = setup->stubPos(ttStubRef);
+        const GlobalPoint gp = setup->stubPosTT(ttStubRef);
         const int stubId = std::distance(stubIds.begin(), stubIds.find(ttStubRef));
         const bool pst = (sm->barrel() && sm->tilt()) || (!sm->barrel() && sm->psModule());
         const double r = gp.perp();
-        const double rPhi = gp.perp() - setup->chosenRofPhi();
+        const double rPhi = gp.perp() - setup->regChosenRofPhi();
         const double trackPhi = phi0 + std::asin((r * r + R0 * R0 - R * R) / 2. / r / R0);
         const double trackZ = z0 + std::abs(R) * cot * std::acos((R * R + R0 * R0 - r * r) / 2. / R / R0);
         double phi = tt::deltaPhi(gp.phi() - phiR - trackPhi);
@@ -170,7 +166,7 @@ namespace trklet {
         tracks.emplace_back(trackTM, stubs);
     }
     // sort tracks by seed type
-    const std::vector<int>& order = channelAssignment->tmMuxOrder();
+    const std::vector<int>& order = setup->tmMuxOrder();
     auto seedValue = [&order](const auto& p) {
       const int seedType = p.first.frame().first->trackSeedType();
       return std::distance(order.begin(), std::find(order.begin(), order.end(), seedType));
@@ -179,9 +175,9 @@ namespace trklet {
     std::sort(tracks.begin(), tracks.end(), smaller);
     for (const std::pair<TrackTM, std::vector<StubTM*>>& track : tracks) {
       const int iRegion = track.first.frame().first->phiSector();
-      const int offset = iRegion * channelAssignment->tmNumLayers();
+      const int offset = iRegion * setup->tmNumLayers();
       streamsTrack[iRegion].emplace_back(track.first.frame());
-      for (int iLayer = 0; iLayer < channelAssignment->tmNumLayers(); iLayer++) {
+      for (int iLayer = 0; iLayer < setup->tmNumLayers(); iLayer++) {
         StubTM* stub = track.second[iLayer];
         streamsStub[offset + iLayer].push_back(stub ? stub->frame() : tt::FrameStub());
       }
