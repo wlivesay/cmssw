@@ -54,6 +54,7 @@ TrackFindingTracklet_params = cms.PSet (
 
   # Parameter specifying Track Multiplexer
   TM = cms.PSet (
+    # Next two options enable cheats that replace the tracklet digi output.
     UseDTCStubs = cms.bool ( False ), # recalculates track parameter and stub residuals from DTC stubs
     UseTTStubs  = cms.bool ( False ), # recalculates track parameter and stub residuals from TT stubs
     WidthInv2R  = cms.int32(     4 ), # number of Bits used to represent inv2R
