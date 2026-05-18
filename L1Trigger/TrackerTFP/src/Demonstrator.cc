@@ -9,7 +9,7 @@
 
 namespace trackerTFP {
 
-  Demonstrator::Demonstrator(const Config& iConfig, const Setup* setup)
+  Demonstrator::Demonstrator(const Config& iConfig, const trackerDTC::Setup* setup)
       : dirIPBB_(iConfig.dirIPBB_),
         runTime_(iConfig.runTime_),
         linkMappingIn_(iConfig.linkMappingIn_),
@@ -19,7 +19,7 @@ namespace trackerTFP {
         dirPre_(dirIPBB_ + "pre.txt"),
         dirDiff_(dirIPBB_ + "diff.txt"),
         numFrames_(setup->sysNumFrames()),
-        numFramesInfra_(setup->numFramesInfra()),
+        numFramesInfra_(setup->sysNumFramesInfra()),
         numRegions_(setup->sysNumRegion()) {}
 
   // plays input through modelsim and compares result with output

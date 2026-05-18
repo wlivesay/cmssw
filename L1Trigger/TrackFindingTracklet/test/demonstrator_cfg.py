@@ -35,7 +35,7 @@ process.emu = cms.Sequence (  process.ProducerDTC
                             + process.ProducerTQ
                             + process.ProducerTFP
                            )
-process.demo = cms.Path( process.emu + process.TrackerTFPDemonstrator )
+process.demo = cms.Path( process.emu + process.TrackFindingTrackletDemonstrator )
 process.schedule = cms.Schedule( process.demo )
 
 # create options

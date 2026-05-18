@@ -60,8 +60,8 @@ TrackFindingTracklet_params = cms.PSet (
     WidthInv2R  = cms.int32(     4 ), # number of Bits used to represent inv2R
     WidthPhiT   = cms.int32(     6 ), # number of Bits used to represent phiT
     WidthZT     = cms.int32(     5 ), # number of Bits used to represent zT
-    WidthDPhi   = cms.int32(    11 ), # number of Bits used to represent stub phi uncertainty in rad
-    WidthDZ     = cms.int32(     9 ), # number of Bits used to represent stub z uncertainty in cm
+    WidthDPhi   = cms.int32(    12 ), # number of Bits used to represent stub phi uncertainty in rad
+    WidthDZ     = cms.int32(    10 ), # number of Bits used to represent stub z uncertainty in cm
     # The order here approximately dictates the order in which tracks enter the DR,
     # with DR keeping 1st track to arrive, in case two tracks are duplicate.
     MuxOrder    = cms.vstring( "L1L2", "L2L3", "L1D1", "L2D1", "D1D2", "D3D4", "L3L4", "L5L6" ), # seed priority during merge

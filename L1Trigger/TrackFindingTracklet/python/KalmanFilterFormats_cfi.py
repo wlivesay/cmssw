@@ -61,9 +61,9 @@ HybridKalmanFilterFormats_params = cms.PSet (
 
   BaseShiftInvDH       = cms.int32( -20 ),
   BaseShiftInvDH2      = cms.int32( -25 ),
-  BaseShiftHv0         = cms.int32(   7 ),
-  BaseShiftHv1         = cms.int32(   9 ),
-  BaseShiftH2v0        = cms.int32(  17 ),
-  BaseShiftH2v1        = cms.int32(  20 ),
+  BaseShiftHv0         = cms.int32(   8 ),
+  BaseShiftHv1         = cms.int32(  10 ),
+  BaseShiftH2v0        = cms.int32(  19 ),
+  BaseShiftH2v1        = cms.int32(  22 ),
 
 )

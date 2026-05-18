@@ -136,7 +136,7 @@ namespace trklet {
           int offsetStubs = (region * numChannelTracks + channelTracks) * numChannelStubs;
           if (TB) {
             numChannelStubs = setup_->tbNumProjectionLayers(channelTracks) + setup_->tbNumSeedingLayers();
-            offsetStubs = setup_->tbOffsetStub(offsetTracks + channelTracks);
+            offsetStubs = setup_->tbOffsetStub(channelTracks);
           }
           if (tracks)
             convert(handleTracks->at(offsetTracks + channelTracks), bits);

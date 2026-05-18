@@ -24,7 +24,7 @@ namespace trackerTFP {
 
   private:
     Demonstrator::Config iConfig_;
-    edm::ESGetToken<Setup, trackerDTC::SetupRcd> esGetToken_;
+    edm::ESGetToken<trackerDTC::Setup, trackerDTC::SetupRcd> esGetToken_;
   };
 
   ProducerDemonstrator::ProducerDemonstrator(const edm::ParameterSet& iConfig) {
@@ -37,7 +37,7 @@ namespace trackerTFP {
   }
 
   std::unique_ptr<Demonstrator> ProducerDemonstrator::produce(const trackerDTC::SetupRcd& rcd) {
-    const Setup* setup = &rcd.get(esGetToken_);
+    const trackerDTC::Setup* setup = &rcd.get(esGetToken_);
     return std::make_unique<Demonstrator>(iConfig_, setup);
   }
 

@@ -97,7 +97,7 @@ namespace trklet {
         r = tt::digiR(config_.tbInnerRadius, tbBaseR_);
     } else {
       const double z = tt::digi((sm->side() ? 1. : -1.) * dtc_->stubDiskZ(layerIndex), tbBaseZ0_);
-      const double invCot = tt::digi(1. / tt::digi(std::abs(cot), tmBaseCot_), tmBaseInvCot_);
+      const double invCot = tt::digi(1. / tt::digiR(std::abs(cot), tmBaseCot_), tmBaseInvCot_);
       r = tt::digiR((z - z0) * invCot, tbBaseR_);
     }
     return GlobalPoint(GlobalPoint::Cylindrical(r, 0, 0));

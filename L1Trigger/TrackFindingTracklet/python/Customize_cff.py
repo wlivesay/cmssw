@@ -9,6 +9,7 @@ def fwConfig(process):
   process.l1tTTTracksFromTrackletEmulation.DoMultipleMatches = False
   process.l1tTTTracksFromTrackletEmulation.StoreTrackBuilderOutput = True
   process.TrackFindingTrackletSetup.TM.UseDTCStubs = False
+  process.TrackFindingTrackletSetup.TM.UseTTStubs = False
 
 # configures track finding s/w to behave as a subchain of processing steps
 def reducedConfig(process):
