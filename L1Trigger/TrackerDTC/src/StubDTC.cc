@@ -38,7 +38,7 @@ namespace trackerDTC {
     phi = tt::digiR(phi, setup->stubBasePhi(type));
     z = tt::digiR(z, setup->stubBaseZ(type));
     // kill stubs outside phi range
-    if (phi < 0 || phi > std::pow(2., setup->stubWidthPhi(type)) * setup->stubBasePhi(type))
+    if (phi < 0 || phi >= std::pow(2., setup->stubWidthPhi(type)) * setup->stubBasePhi(type))
       valid_ = false;
     if (!valid_)
       return;
