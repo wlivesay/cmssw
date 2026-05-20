@@ -252,13 +252,19 @@ namespace trklet {
                            const tt::StreamsStub& streamsStub,
                            std::deque<TrackTB>& tbTracks,
                            std::deque<StubTB>& tbStubs) const {
+    auto toLayer = [](int layer) {
+      static constexpr int offsetBarrel = 1;
+      static constexpr int offsetDisk = 11;
+      static constexpr int numBarrel = 6;
+      return layer < offsetDisk ? layer - offsetBarrel : layer - offsetDisk + numBarrel;
+    };
     for (int region = 0; region < setup_->sysNumRegion(); region++) {
-      const int offsetTrack = region * setup_->tbNumChannelsTrack();
-      const int offsetStub = region * setup_->tbNumChannelsStub();
-      for (int seeedType = 0; seeedType < setup_->tbNumChannelsTrack(); seeedType++) {
-        const int numP = setup_->tbNumProjectionLayers(seeedType);
-        const int channelTrack = offsetTrack + seeedType;
-        const int offsetChannel = offsetStub + setup_->tbOffsetStub(seeedType);
+      const int offsetTrack = region * setup_->tbNumSeedTypes();
+      for (int seedType = 0; seedType < setup_->tbNumSeedTypes(); seedType++) {
+        const std::vector<int>& layersSeed = setup_->tbSeedLayers(seedType);
+        const std::vector<int>& layersProj = setup_->tbProjectionLayers(seedType);
+        const int channelTrack = offsetTrack + seedType;
+        const int offsetStub = channelTrack * setup_->tbNumLayers();
         const tt::StreamTrack& streamTrack = streamsTrack[channelTrack];
         for (int frame = 0; frame < static_cast<int>(streamTrack.size()); frame++) {
           const TTTrackRef& ttTrackRef = streamTrack[frame].first;
@@ -270,8 +276,9 @@ namespace trklet {
           double z0 = tt::digi(ttTrackRef->z0(), setup_->tbBaseZ0());
           // convert stubs
           std::deque<StubTB*> trackStubs;
-          for (int layer = 0; layer < numP; layer++) {
-            const tt::FrameStub& frameStub = streamsStub[offsetChannel + layer][frame];
+          for (int layerId : layersProj) {
+            const int layer = toLayer(layerId);
+            const tt::FrameStub& frameStub = streamsStub[offsetStub + layer][frame];
             const TTStubRef& ttStubRef = frameStub.first;
             if (ttStubRef.isNull())
               continue;
@@ -280,15 +287,16 @@ namespace trklet {
             trackStubs.push_back(&tbStubs.back());
           }
           // create fake seed stubs, since TrackBuilder doesn't output these stubs, required by the KF.
-          for (int seedingLayer = 0; seedingLayer < setup_->tbNumSeedingLayers(); seedingLayer++) {
-            const tt::FrameStub& frameStub = streamsStub[offsetChannel + numP + seedingLayer][frame];
+          for (int layerId : layersSeed) {
+            const int layer = toLayer(layerId);
+            const tt::FrameStub& frameStub = streamsStub[offsetStub + layer][frame];
             const TTStubRef& ttStubRef = frameStub.first;
             const GlobalPoint gp = setup_->stubPosTB(ttStubRef, cot, z0);
             tbStubs.emplace_back(ttStubRef, gp.perp(), 0., inv2R, true);
             trackStubs.push_back(&tbStubs.back());
           }
           // create track
-          tbTracks.emplace_back(ttTrackRef, seeedType, inv2R, cot, z0, trackStubs);
+          tbTracks.emplace_back(ttTrackRef, seedType, inv2R, cot, z0, trackStubs);
         }
       }
     }

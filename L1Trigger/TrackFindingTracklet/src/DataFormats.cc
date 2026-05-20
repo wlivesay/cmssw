@@ -123,7 +123,7 @@ namespace trklet {
 
   template <>
   DataFormat makeDataFormat<Variable::stubId, Process::tm>(const Setup* setup) {
-    const int width = setup->tmWidthStubId() + 1;
+    const int width = setup->tbWidthStubId() + 1;
     return DataFormat(false, width);
   }
   template <>
@@ -132,7 +132,7 @@ namespace trklet {
     const DataFormat inv2R = makeDataFormat<Variable::inv2R, Process::tm>(setup);
     const double range = 2. * setup->tbMaxRphi();
     const double baseShifted = phiT.base() / inv2R.base();
-    const int shift = std::ceil(std::log2(range / baseShifted)) - setup->glWidthR();
+    const int shift = tt::ilog2(range / baseShifted) - setup->glWidthR();
     const double base = baseShifted * std::pow(2., shift);
     return DataFormat(true, base, range);
   }
@@ -140,9 +140,8 @@ namespace trklet {
   DataFormat makeDataFormat<Variable::phi, Process::tm>(const Setup* setup) {
     const DataFormat phiT = makeDataFormat<Variable::phiT, Process::tm>(setup);
     const DataFormat inv2R = makeDataFormat<Variable::inv2R, Process::tm>(setup);
-    const double rangeMin = setup->regRangePhiT() + setup->tbMaxRphi() * inv2R.range();
-    const double range = phiT.base() + setup->tbMaxRphi() * inv2R.base();
-    const int shift = std::ceil(std::log2(rangeMin / phiT.base())) - setup->glWidthPhi();
+    const double range = setup->regRangePhiT() + setup->tbMaxRphi() * inv2R.range();
+    const int shift = tt::ilog2(range / phiT.base()) - setup->glWidthPhi();
     const double base = phiT.base() * std::pow(2., shift);
     return DataFormat(true, base, range);
   }
@@ -150,9 +149,8 @@ namespace trklet {
   DataFormat makeDataFormat<Variable::z, Process::tm>(const Setup* setup) {
     const DataFormat zT = makeDataFormat<Variable::zT, Process::tm>(setup);
     const DataFormat cot = makeDataFormat<Variable::cot, Process::tm>(setup);
-    const double rangeMin = 2. * setup->sysHalfLength();
-    const double range = zT.base() + setup->tbMaxRz() * cot.base();
-    const int shift = std::ceil(std::log2(rangeMin / zT.base())) - setup->glWidthZ();
+    const double range = 2. * setup->sysHalfLength();
+    const int shift = tt::ilog2(range / zT.base()) - setup->glWidthZ();
     const double base = zT.base() * std::pow(2., shift);
     return DataFormat(true, base, range);
   }

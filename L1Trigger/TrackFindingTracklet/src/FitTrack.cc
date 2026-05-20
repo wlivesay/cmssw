@@ -975,7 +975,7 @@ void FitTrack::execute(deque<string>& streamTrackRaw,
         static const string invalid = "0";
         streamTrackRaw.emplace_back(invalid);
         for (auto& stream : streamsStubRaw)
-          stream.emplace_back(StubStreamData());
+          stream.emplace_back();
         continue;
       }
       // convert Track word
@@ -989,11 +989,11 @@ void FitTrack::execute(deque<string>& streamTrackRaw,
       streamTrackRaw.emplace_back(valid + seed + rinv + phi0 + z0 + t);
 
       // convert projected stubs
-      TTBV projectionLayers(0, N_LAYER + N_DISK);
+      TTBV hitPattern(0, N_LAYER + N_DISK);
       for (unsigned int ilayer = 0; ilayer < N_LAYER + N_DISK; ilayer++) {
         if (!bestTracklet->match(ilayer))
           continue;
-        projectionLayers.set(ilayer);
+        hitPattern.set(ilayer);
         const Residual& resid = bestTracklet->resid(ilayer);
         // create bit accurate 64 bit word
         // Need to extract the corrected r value
@@ -1021,12 +1021,16 @@ void FitTrack::execute(deque<string>& streamTrackRaw,
       // convert seed stubs
       const string& stubId0 = bestTracklet->innerFPGAStub()->phiregionaddressstr();
       const L1TStub* stub0 = bestTracklet->innerFPGAStub()->l1tstub();
-      streamsStubRaw[N_LAYER + N_DISK].emplace_back(seedType, *stub0, valid + stubId0);
+      const int layer0 = bestTracklet->innerFPGAStub()->layerdisk();
+      hitPattern.set(layer0);
+      streamsStubRaw[layer0].emplace_back(seedType, *stub0, valid + stubId0);
       const string& stubId1 = bestTracklet->outerFPGAStub()->phiregionaddressstr();
       const L1TStub* stub1 = bestTracklet->outerFPGAStub()->l1tstub();
-      streamsStubRaw[N_LAYER + N_DISK + 1].emplace_back(seedType, *stub1, valid + stubId1);
+      const int layer1 = bestTracklet->outerFPGAStub()->layerdisk();
+      hitPattern.set(layer1);
+      streamsStubRaw[layer1].emplace_back(seedType, *stub1, valid + stubId1);
       // fill all layers that have no stubs with gaps
-      for (int ilayer : projectionLayers.ids(false))
+      for (int ilayer : hitPattern.ids(false))
         streamsStubRaw[ilayer].emplace_back();
     }
 

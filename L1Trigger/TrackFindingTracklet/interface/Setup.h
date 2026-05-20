@@ -48,6 +48,8 @@ namespace trklet {
       int tbNumSeedTypes;
       // number of layers used to form a seed
       int tbNumSeedingLayers;
+      // number of layers
+      int tbNumLayers;
       // seed types used in tracklet algorithm (position gives int value)
       std::vector<std::string> tbSeedTypes;
       // seeding layers of seed types using default layer id [barrel: 1-6, discs: 11-15]
@@ -56,6 +58,16 @@ namespace trklet {
       std::vector<std::vector<int>> tbSeedTypesProjectionLayers;
       // number of bits used for stub r w.r.t layer/disk centre for module types (barrelPS, barrel2S, diskPS, disk2S) at TB output
       std::vector<int> tbWidthsR;
+      // number of Bits used to represent stubId
+      int tbWidthStubId;
+      // number of Bits used to represent inv2R
+      int tbWidthInv2R;
+      // number of Bits used to represent phi0
+      int tbWidthPhi0;
+      // number of Bits used to represent z0
+      int tbWidthZ0;
+      // number of Bits used to represent cot
+      int tbWidthCot;
       // recalculates track parameter and stub residuals from DTC stubs
       bool tmUseDTCStubs;
       // recalculates track parameter and stub residuals from TT stubs
@@ -72,12 +84,6 @@ namespace trklet {
       int tmWidthDZ;
       // seed priority during merge
       std::vector<std::string> tmMuxOrder;
-      // number of layers per track
-      int tmNumLayers;
-      // number of bits used to represent stub id for projected stubs
-      int tmWidthStubId;
-      // number of bits used for internal cotTheta variable
-      int tmWidthCot;
       // number of comparison modules used in each DR node
       int drNumComparisonModules;
       // min number of shared stubs to identify duplicates
@@ -218,6 +224,10 @@ namespace trklet {
     double stubRangePhi() const { return dtc_->stubRangePhi(); }
     // center radius of outer tracker endcap 2S diks strips
     double stubDiskR(int layerId, int r) const { return dtc_->stubDiskR(layerId, r); }
+    // precision or r in cm for (barrelPS, barrel2S, diskPS, disk2S)
+    double stubBaseR(trackerDTC::SensorModule::Type type) const { return dtc_->stubBaseR(type); }
+    // mean radius of outer tracker barrel layer
+    double stubLayerR(int layer) const { return dtc_->stubLayerR(layer); }
 
     // smallest address width of an BRAM18 configured as broadest simple dual port memory
     int widthAddrBRAM18() const { return dtc_->widthAddrBRAM18(); }
@@ -234,20 +244,22 @@ namespace trklet {
     // number of frames which can be processed internally using high clock frequency
     int numFrames() const { return numFrames_; }
 
+    // number of seed Types
+    int tbNumSeedTypes() const { return config_.tbNumSeedTypes; }
+    // smallest disk stub z position after TrackBuilder in cm
+    double tbMinZ() const { return config_.tbMinZ; }
+    // smallest stub radius after TrackBuilder in cm
+    double tbInnerRadius() const { return config_.tbInnerRadius; }
     // largest possible |r - chosenRofPhi|
     double tbMaxRphi() const { return tbMaxRphi_; }
     // largest possible |r - chosenRofZ|
     double tbMaxRz() const { return tbMaxRz_; }
     // largest possible cotTheta
     double tbMaxCot() const { return tbMaxCot_; }
-    // // max number of projection layers
-    int tbMaxNumProjectionLayers() const { return tbMaxNumProjectionLayers_; }
-    // number of track channels
-    int tbNumChannelsTrack() const { return tbNumChannelsTrack_; }
-    // number of stub channels
-    int tbNumChannelsStub() const { return tbNumChannelsStub_; }
     // number of layers used to form a seed
     int tbNumSeedingLayers() const { return config_.tbNumSeedingLayers; }
+    // number of layers
+    int tbNumLayers() const { return config_.tbNumLayers; }
     // layers a seed types can project to using default layer id [barrel: 1-6, discs: 11-15]
     int tbNumProjectionLayers(int seedType) const { return config_.tbSeedTypesProjectionLayers[seedType].size(); }
     // layers a seed types can project to using default layer id [barrel: 1-6, discs: 11-15]
@@ -256,17 +268,27 @@ namespace trklet {
     }
     // seeding layers of seed types using default layer id [barrel: 1-6, discs: 11-15]
     const std::vector<int>& tbSeedLayers(int seedType) const { return config_.tbSeedTypesSeedLayers[seedType]; }
-    // offset stub channel id for given seed type
-    int tbOffsetStub(int seedType) const { return tbOffsetStub_[seedType]; }
     // number of bits used for stub r w.r.t layer/disk centre for module types (barrelPS, barrel2S, diskPS, disk2S) after TrackBuilder
     int tbWidthR(trackerDTC::SensorModule::Type type) const { return config_.tbWidthsR.at(type); }
+    // number of Bits used to represent stubId
+    int tbWidthStubId() const { return config_.tbWidthStubId; }
+    // number of Bits used to represent inv2R
+    int tbWidthInv2R() const { return config_.tbWidthInv2R; }
+    // number of Bits used to represent phi0
+    int tbWidthPhi0() const { return config_.tbWidthPhi0; }
+    // number of Bits used to represent z0
+    int tbWidthZ0() const { return config_.tbWidthZ0; }
+    // number of Bits used to represent cot
+    int tbWidthCot() const { return config_.tbWidthCot; }
     double tbBaseInv2R() const { return tbBaseInv2R_; }
     double tbBasePhi0() const { return tbBasePhi0_; }
     double tbBaseCot() const { return tbBaseCot_; }
     double tbBaseZ0() const { return tbBaseZ0_; }
     double tbBaseR() const { return tbBaseR_; }
     double tbBasePhi() const { return tbBasePhi_; }
+    double tbBasePhi(int layer) const { return tbBasePhis_[layer]; }
     double tbBaseZ() const { return tbBaseZ_; }
+    double tbBaseZ(int layer) const { return tbBaseZs_[layer]; }
     int tbWidthZ() const { return tbWidthZ_; }
     int tbWidthR() const { return tbWidthR_; }
     int tbWidthPhi() const { return tbWidthPhi_; }
@@ -288,11 +310,8 @@ namespace trklet {
     // mux order of seed types
     const std::vector<int>& tmMuxOrder() const { return tmMuxOrder_; }
     // number of layers per track
-    int tmNumLayers() const { return config_.tmNumLayers; }
-    // number of bits used to represent stub id for projected stubs
-    int tmWidthStubId() const { return config_.tmWidthStubId; }
-    // number of bits used for internal cotTheta variable
-    int tmWidthCot() const { return config_.tmWidthCot; }
+    int tmNumLayers() const { return tmNumLayers_; }
+    double tmBaseInvCot() const { return tmBaseInvCot_; }
 
     // number of comparison modules used in each DR node
     int drNumComparisonModules() const { return config_.drNumComparisonModules; }
@@ -357,16 +376,8 @@ namespace trklet {
     double tbMaxRz_;
     // largest possible cotTheta
     double tbMaxCot_;
-    // max number of projection layers
-    int tbMaxNumProjectionLayers_;
-    // number of track channels
-    int tbNumChannelsTrack_;
-    // number of stub channels
-    int tbNumChannelsStub_;
     // number of bits used for stub r w.r.t layer/disk centre for module types (barrelPS, barrel2S, diskPS, disk2S) after TrackBuilder
     std::vector<int> tbWidthsR_;
-    // offset stub channel id for given seed type
-    std::vector<int> tbOffsetStub_;
     double tbBaseInv2R_;
     double tbBasePhi0_;
     double tbBaseCot_;
@@ -383,6 +394,8 @@ namespace trklet {
     double tmBaseCot_;
     // mux order of seed types
     std::vector<int> tmMuxOrder_;
+    // number of layers per track
+    int tmNumLayers_;
   };
 
 }  // namespace trklet

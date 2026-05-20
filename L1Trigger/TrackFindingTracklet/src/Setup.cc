@@ -38,21 +38,7 @@ namespace trklet {
     tbWidthPhi_ = settings.phiresidbits();
     const int baseShiftInvCot = tt::ilog2(config_.tbMaxR / config_.tbMinZ) - dtc_->widthDSPbu();
     tmBaseInvCot_ = std::pow(2, baseShiftInvCot);
-    const int unusedMSBScot = tt::floor(std::log2(tbBaseCot_ * std::pow(2.0, config_.tmWidthCot) / 2. / tbMaxCot_));
-    const int baseShiftScot = config_.tmWidthCot - unusedMSBScot - 1 - dtc_->widthAddrBRAM18();
-    tmBaseCot_ = tbBaseCot_ * std::pow(2.0, baseShiftScot);
-    //
-    tbNumChannelsTrack_ = config_.tbSeedTypes.size();
-    tbMaxNumProjectionLayers_ = -1;
-    tbNumChannelsStub_ = 0;
-    tbOffsetStub_.reserve(tbNumChannelsTrack_);
-    tbOffsetStub_.push_back(0);
-    for (const std::vector<int>& projectionLayers : config_.tbSeedTypesProjectionLayers) {
-      if (tbMaxNumProjectionLayers_ != -1)
-        tbOffsetStub_.push_back(tbNumChannelsStub_);
-      tbMaxNumProjectionLayers_ = std::max(tbMaxNumProjectionLayers_, static_cast<int>(projectionLayers.size()));
-      tbNumChannelsStub_ += projectionLayers.size() + config_.tbNumSeedingLayers;
-    }
+    tmNumLayers_ = config_.tbNumLayers;
     tmMuxOrder_.reserve(config_.tmMuxOrder.size());
     for (const std::string& seedType : config_.tmMuxOrder) {
       const auto it = std::find(config_.tbSeedTypes.begin(), config_.tbSeedTypes.end(), seedType);
@@ -97,7 +83,7 @@ namespace trklet {
         r = tt::digiR(config_.tbInnerRadius, tbBaseR_);
     } else {
       const double z = tt::digi((sm->side() ? 1. : -1.) * dtc_->stubDiskZ(layerIndex), tbBaseZ0_);
-      const double invCot = tt::digi(1. / tt::digiR(std::abs(cot), tmBaseCot_), tmBaseInvCot_);
+      const double invCot = tt::digi(1. / std::abs(cot), tmBaseInvCot_);
       r = tt::digiR((z - z0) * invCot, tbBaseR_);
     }
     return GlobalPoint(GlobalPoint::Cylindrical(r, 0, 0));

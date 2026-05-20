@@ -21,21 +21,24 @@ namespace trklet {
     TrackMultiplexer(const Setup*, const DataFormats*, int, const TTDTC&);
     ~TrackMultiplexer() = default;
     // read in and organize input tracks and stubs
-    void consume(const tt::StreamsTrack& streamsTrack, const tt::StreamsStub& streamsStub);
+    void consume(const tt::StreamsTrack&, const tt::StreamsStub&);
     // fill output products
-    void produce(tt::StreamsTrack& streamsTrack, tt::StreamsStub& streamsStub);
+    void produce(tt::StreamsTrack&, tt::StreamsStub&);
 
   private:
+    // turns layerId [1-6, 11-15] into layerIndexCombined [0-10]
+    int toLayer(int) const;
     struct Stub {
-      Stub(const TTStubRef& ttStubRef, int layer, int stubId, double r, double phi, double z, bool psTilt)
-          : valid_(true), ttStubRef_(ttStubRef), layer_(layer), stubId_(stubId), r_(r), phi_(phi), z_(z) {
+      Stub(const TTStubRef& ttStubRef, const trackerDTC::SensorModule* sm, int stubId, double r, double phi, double z)
+          : ttStubRef_(ttStubRef), sm_(sm), stubId_(stubId), r_(r), phi_(phi), z_(z) {
+        bool psTilt = sm->barrel() ? sm->tilted() : sm->psModule();
         stubId_ = 2 * stubId_ + (psTilt ? 1 : 0);
       }
+      Stub(const TTStubRef& ttStubRef, const trackerDTC::SensorModule* sm, int stubId)
+          : Stub(ttStubRef, sm, stubId, 0., 0., 0.) {}
       tt::FrameStub frame(const DataFormats* df) const { return StubTM(ttStubRef_, df, stubId_, r_, phi_, z_).frame(); }
-      bool valid_;
       TTStubRef ttStubRef_;
-      // kf layer id
-      int layer_;
+      const trackerDTC::SensorModule* sm_;
       // tracklet stub id, used to identify duplicates
       int stubId_;
       // radius w.r.t. chosenRofPhi in cm
@@ -46,26 +49,22 @@ namespace trklet {
       double z_;
     };
     struct Track {
-      static constexpr int max_ = 11;
-      Track() { stubs_.reserve(max_); }
       Track(const TTTrackRef& ttTrackRef,
             int seedType,
             double inv2R,
-            double phiT,
+            double phi0,
             double cot,
-            double zT,
+            double z0,
             const std::vector<Stub*>& stubs)
           : ttTrackRef_(ttTrackRef),
-            valid_(true),
             seedType_(seedType),
             inv2R_(inv2R),
-            phiT_(phiT),
+            phiT_(phi0),
             cot_(cot),
-            zT_(zT),
+            zT_(z0),
             stubs_(stubs) {}
       tt::FrameTrack frame(const DataFormats* df) const { return TrackTM(ttTrackRef_, df, inv2R_, phiT_, zT_).frame(); }
       TTTrackRef ttTrackRef_;
-      bool valid_;
       int seedType_;
       double inv2R_;
       double phiT_;

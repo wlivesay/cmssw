@@ -44,6 +44,7 @@ namespace trklet {
     config_.tbInnerRadius = pSetTB.getParameter<double>("InnerRadius");
     config_.tbNumSeedTypes = pSetTB.getParameter<int>("NumSeedTypes");
     config_.tbNumSeedingLayers = pSetTB.getParameter<int>("NumSeedingLayers");
+    config_.tbNumLayers = pSetTB.getParameter<int>("NumLayers");
     config_.tbSeedTypes = pSetTB.getParameter<std::vector<std::string>>("SeedTypes");
     config_.tbSeedTypesSeedLayers.reserve(config_.tbNumSeedTypes);
     const edm::ParameterSet& stsl = pSetTB.getParameter<edm::ParameterSet>("SeedTypesSeedLayers");
@@ -54,6 +55,11 @@ namespace trklet {
     for (const std::string& seedType : config_.tbSeedTypes)
       config_.tbSeedTypesProjectionLayers.emplace_back(stpl.getParameter<std::vector<int>>(seedType));
     config_.tbWidthsR = pSetTB.getParameter<std::vector<int>>("WidthsR");
+    config_.tbWidthStubId = pSetTB.getParameter<int>("WidthStubId");
+    config_.tbWidthInv2R = pSetTB.getParameter<int>("WidthInv2R");
+    config_.tbWidthPhi0 = pSetTB.getParameter<int>("WidthPhi0");
+    config_.tbWidthZ0 = pSetTB.getParameter<int>("WidthZ0");
+    config_.tbWidthCot = pSetTB.getParameter<int>("WidthCot");
     const edm::ParameterSet& pSetTM = iConfig.getParameter<edm::ParameterSet>("TM");
     config_.tmUseDTCStubs = pSetTM.getParameter<bool>("UseDTCStubs");
     config_.tmUseTTStubs = pSetTM.getParameter<bool>("UseTTStubs");
@@ -63,9 +69,6 @@ namespace trklet {
     config_.tmWidthDPhi = pSetTM.getParameter<int>("WidthDPhi");
     config_.tmWidthDZ = pSetTM.getParameter<int>("WidthDZ");
     config_.tmMuxOrder = pSetTM.getParameter<std::vector<std::string>>("MuxOrder");
-    config_.tmNumLayers = pSetTM.getParameter<int>("NumLayers");
-    config_.tmWidthStubId = pSetTM.getParameter<int>("WidthStubId");
-    config_.tmWidthCot = pSetTM.getParameter<int>("WidthCot");
     const edm::ParameterSet& pSetDR = iConfig.getParameter<edm::ParameterSet>("DR");
     config_.drNumComparisonModules = pSetDR.getParameter<int>("NumComparisonModules");
     config_.drMinIdenticalStubs = pSetDR.getParameter<int>("MinIdenticalStubs");

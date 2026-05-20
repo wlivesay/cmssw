@@ -13,7 +13,7 @@ AnalyzerTB = cms.EDAnalyzer( 'trklet::AnalyzerTB', TrackFindingTrackletAnalyzer_
 AnalyzerStream  = cms.EDAnalyzer( 'tt::AnalyzerStreamTrack',  TrackFindingTrackletAnalyzer_params, TrackFindingTrackletProducer_params, StubAssociator_params )
 AnalyzerTTTrack = cms.EDAnalyzer( 'tt::AnalyzerTTTrack',      TrackFindingTrackletAnalyzer_params, TrackFindingTrackletProducer_params, StubAssociator_params )
 
-AnalyzerTM = AnalyzerStream.clone( Process = "TM", NumLayers = TrackFindingTracklet_params.TM.NumLayers )
+AnalyzerTM = AnalyzerStream.clone( Process = "TM", NumLayers = TrackFindingTracklet_params.TB.NumLayers )
 AnalyzerDR = AnalyzerStream.clone( Process = "DR" )
 AnalyzerKF = AnalyzerStream.clone( Process = "KF" )
 

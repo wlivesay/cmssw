@@ -28,6 +28,7 @@ TrackFindingTracklet_params = cms.PSet (
     InnerRadius = cms.double( 19.6 ), # smallest stub radius after TrackBuilder in cm
     NumSeedTypes = cms.int32( 8 ), # number of seed Types
     NumSeedingLayers = cms.int32( 2 ), # number of layers used to form a seed
+    NumLayers = cms.int32( 11 ), # number of layers
     SeedTypes = cms.vstring( "L1L2", "L2L3", "L3L4", "L5L6", "D1D2", "D3D4", "L1D1", "L2D1" ), # seed types used in tracklet algorithm (position gives int value)
     SeedTypesSeedLayers = cms.PSet ( # seeding layers of seed types using default layer id [barrel: 1-6, discs: 11-15]
       L1L2 = cms.vint32(  1,  2 ),
@@ -50,6 +51,11 @@ TrackFindingTracklet_params = cms.PSet (
       L2D1 = cms.vint32(  1, 12, 13, 14 )
     ),
     WidthsR = cms.vint32 ( 7, 7, 12, 12 ), # number of bits used for stub r w.r.t layer/disk centre for module types (barrelPS, barrel2S, diskPS, disk2S) at TB output
+    WidthStubId  = cms.int32( 10 ), # number of Bits used to represent stubId
+    WidthInv2R   = cms.int32( 14 ), # number of Bits used to represent inv2R
+    WidthPhi0    = cms.int32( 18 ), # number of Bits used to represent phi0
+    WidthZ0      = cms.int32( 10 ), # number of Bits used to represent z0
+    WidthCot     = cms.int32( 14 ), # number of Bits used to represent cot
   ),
 
   # Parameter specifying Track Multiplexer
@@ -65,9 +71,6 @@ TrackFindingTracklet_params = cms.PSet (
     # The order here approximately dictates the order in which tracks enter the DR,
     # with DR keeping 1st track to arrive, in case two tracks are duplicate.
     MuxOrder    = cms.vstring( "L1L2", "L2L3", "L1D1", "L2D1", "D1D2", "D3D4", "L3L4", "L5L6" ), # seed priority during merge
-    NumLayers   = cms.int32(    11 ), # number of layers per track
-    WidthStubId = cms.int32(    10 ), # number of bits used to represent stub id for projected stubs
-    WidthCot    = cms.int32(    14 ), # number of bits used for internal cotTheta variable
   ),
 
   # Parameter specifying Duplicate Removal
