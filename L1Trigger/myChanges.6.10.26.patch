@@ -1,0 +1,481 @@
+diff --git a/L1Trigger/TrackFindingTracklet/interface/Settings.h b/L1Trigger/TrackFindingTracklet/interface/Settings.h
+index d6150b15427..7c548eada95 100644
+--- a/L1Trigger/TrackFindingTracklet/interface/Settings.h
++++ b/L1Trigger/TrackFindingTracklet/interface/Settings.h
+@@ -44,7 +44,7 @@ namespace trklet {
+ 
+   constexpr unsigned int N_VMSTUBSMAX = 15;     // maximum number of stubs in VM bin
+   constexpr unsigned int N_BITSMEMADDRESS = 7;  // Number of bits for address in memories
+-
++//Billy changing line above from bit address 7 to something higher!
+   constexpr double sixth = 1.0 / 6.0;  //Commonly used factor
+   constexpr double third = 1.0 / 3.0;  //Commonly used factor
+ 
+@@ -847,6 +847,7 @@ namespace trklet {
+     // Offset to the maximum number of steps in each processing step:
+     // Set to 0 (default) means standard truncation
+     // Set to large value, e.g. 10000, to disable truncation
++    //Billy changed line below from 0 to 10000
+     unsigned int maxstepoffset_{0};
+     // turn off truncation for displaced tracking (not implemented properly for displaced seeding)
+     unsigned int maxstepoffset_extended_{10000};
+diff --git a/L1Trigger/TrackFindingTracklet/src/Residual.cc b/L1Trigger/TrackFindingTracklet/src/Residual.cc
+index 1507d73bc4e..5911103926c 100644
+--- a/L1Trigger/TrackFindingTracklet/src/Residual.cc
++++ b/L1Trigger/TrackFindingTracklet/src/Residual.cc
+@@ -31,6 +31,7 @@ void Residual::init(Settings const& settings,
+   }
+ 
+   int nbitsid = 10;
++  //Billy changed line above from 10 to 11 to account for increase in the other n in Settings.h from 7 to 8 I think
+   fpgastubid_.set(istubid, nbitsid, true, __LINE__, __FILE__);
+   assert(!fpgaphiresid_.atExtreme());
+ 
+diff --git a/L1Trigger/TrackFindingTracklet/src/TrackletParametersMemory.cc b/L1Trigger/TrackFindingTracklet/src/TrackletParametersMemory.cc
+index 815c379f674..0f65372f40e 100644
+--- a/L1Trigger/TrackFindingTracklet/src/TrackletParametersMemory.cc
++++ b/L1Trigger/TrackFindingTracklet/src/TrackletParametersMemory.cc
+@@ -16,6 +16,7 @@ TrackletParametersMemory::TrackletParametersMemory(string name, Settings const&
+ void TrackletParametersMemory::clean() {
+   //This is where we delete the tracklets that were created. As tracklet as stored in both the TPAR and MPAR memories
+   //we will onlu delete once in the TPAR memory
++
+   if (name_[0] == 'T') {
+     for (unsigned int page = 0; page < npage_; page++) {
+       for (auto& tracklet : tracklets_[page]) {
+diff --git a/L1Trigger/TrackFindingTracklet/src/TrackletProcessor.cc b/L1Trigger/TrackFindingTracklet/src/TrackletProcessor.cc
+index d588eb68f2e..df8ad74458b 100644
+--- a/L1Trigger/TrackFindingTracklet/src/TrackletProcessor.cc
++++ b/L1Trigger/TrackFindingTracklet/src/TrackletProcessor.cc
+@@ -195,7 +195,7 @@ void TrackletProcessor::execute(unsigned int iSector, double phimin, double phim
+   phimin_ = phimin;
+   phimax_ = phimax;
+   iSector_ = iSector;
+-
++  
+   if (!settings_.useSeed(iSeed_))
+     return;
+ 
+@@ -301,13 +301,20 @@ void TrackletProcessor::execute(unsigned int iSector, double phimin, double phim
+ 
+       if (accept)
+         countsel++;
+-
++//Billy changed:
++//old:(back to normal)
+       if (trackletpars_->nTracklets() >= settings_.ntrackletmax()) {
+         edm::LogVerbatim("Tracklet") << "Will break on number of tracklets in " << getName();
+         assert(0);
+         break;
+-      }
+-
++      }//Below is my code I commented out again (back to normal)
++      //if (trackletpars_->nTracklets() >= settings_.ntrackletmax()) {
++      //  edm::LogWarning("Tracklet")
++      //    << "Exceeded nTrackletMax in " << getName()
++      //    << " (skipping further tracklet creation in this unit)";
++      //  break;  // CRITICAL
++      //}
++//new above---------------
+       if (settings_.debugTracklet()) {
+         edm::LogVerbatim("Tracklet") << "TrackletProcessor execute done";
+       }
+@@ -485,6 +492,7 @@ void TrackletProcessor::execute(unsigned int iSector, double phimin, double phim
+     if (donecount > 4) {
+       break;
+     }
++
+   }
+ 
+   //
+diff --git a/L1Trigger/TrackFindingTracklet/test/L1TrackNtupleMaker_cfg.py b/L1Trigger/TrackFindingTracklet/test/L1TrackNtupleMaker_cfg.py
+index 8e489f55e66..0385925f47a 100644
+--- a/L1Trigger/TrackFindingTracklet/test/L1TrackNtupleMaker_cfg.py
++++ b/L1Trigger/TrackFindingTracklet/test/L1TrackNtupleMaker_cfg.py
+@@ -25,7 +25,7 @@ GEOMETRY = "D110"
+ # 'HYBRID_DISPLACED_NEWKF_KILL' displaced tracklet followed by DR emulation and 5 param fit sim
+ # 'HYBRID_DISPLACED_NEWKF_MERGE' displaced tracklet followed by DR simulation and 5 param fit sim
+ # (Or legacy algos 'TMTT' or 'TRACKLET').
+-L1TRKALGO = 'HYBRID'
++L1TRKALGO = 'HYBRID_DISPLACED'
+ 
+ WRITE_DATA = False
+ 
+@@ -65,7 +65,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+ # input and output
+ ############################################################
+ 
+-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(100))
++process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(50000))
+ 
+ #--- To use MCsamples scripts, defining functions get*data*() for easy MC access,
+ #--- follow instructions in https://github.com/cms-L1TK/MCsamples
+@@ -86,10 +86,43 @@ if GEOMETRY == "D110":
+   # Or read specified dataset (accesses CMS DB, so use this method only occasionally):
+   #dataName="/RelValTTbar_14TeV_TuneCP5/CMSSW_15_1_0_pre5-PU_150X_mcRun4_realistic_v1_RV269_Run4D110_PU-v2/GEN-SIM-DIGI-RAW"
+   #inputMC=getCMSdata(dataName)
+-  
+-  # ttbar + 200PU
+-  inputMC = ["/store/relval/CMSSW_15_1_0_pre5/RelValTTbar_14TeV_TuneCP5/GEN-SIM-DIGI-RAW/PU_150X_mcRun4_realistic_v1_RV269_Run4D110_PU-v2/2590000/0f0bcfd3-dafe-4dda-8d39-9765f6eae68e.root"]
+-
++#-----------------------------------------------
++  #ttbarPU0
++  #inputMC = ["/store/relval/CMSSW_15_1_0_pre5/RelValTTbar_14TeV_TuneCP5/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/02a7204c-3f1c-4858-9350-2f506d729bbc.root"]
++
++  #ttbarPU200
++  #inputMC = ["/store/relval/CMSSW_15_1_0_pre5/RelValTTbar_14TeV_TuneCP5/GEN-SIM-DIGI-RAW/PU_150X_mcRun4_realistic_v1_RV269_Run4D110_PU-v2/2590000/0f0bcfd3-dafe-4dda-8d39-9765f6eae68e.root"]
++  #testing dmumuPU0 1.5-8GeV - it was just as slow as other dmumu
++  #inputMC = ["/store/relval/CMSSW_15_1_0_pre5/RelValDoubleEFlatPt1p5To8Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/1046165c-f291-42de-aff0-3ca323ad610e.root"]
++  #dmumuPU0
++#  inputMC = [
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/15fccacc-3fa6-4346-9cfc-0603b0c88a1a.root",
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/19c01072-d035-4f44-a0f2-febe63c5bf19.root",
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/1ccfeac0-6836-4b70-8c25-a58cba476461.root",
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/1e28317c-ea01-4b8a-9b4f-06a451ce4cd0.root",
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/1f062740-5908-4881-99e7-2906ddff3be5.root",
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/2c39e878-5c6b-4424-91c4-d042025a859a.root",
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/38663973-4192-4c44-82d5-9ca3887e03f6.root",
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/3a3a7d25-e399-495c-bfc4-d1d51e136799.root",
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/457e9ae8-2544-47ae-aa5b-573e413eb5b9.root",
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/45a97837-5f25-4a42-8031-47f9d3c85e87.root",
++#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/4bc94a7e-93bc-44d6-9bff-72ae78afb4d2.root"
++#   ]
++  #mumuPU0
++  inputMC = [
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/076c038a-eb20-4be9-8bff-04af5917c436.root",
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/0f3079cd-9bbb-40dd-818f-c88b56da788d.root",
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/172c5251-29a9-401e-98f1-4374d79c452f.root",
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/28930fcd-f1a5-409f-bdbd-2fde46df6a0a.root",
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/2d333cb0-9361-49f2-90ae-e485a261a2ca.root",
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/3c4dffcd-5756-4eb3-8b1c-7650e0e56501.root",
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/595a1087-5042-49e0-aa18-977aae66b3cc.root",
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/7cbd1098-c32b-4c95-806e-921e57b3b46b.root",
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/863168cc-97a1-44f8-ba45-a3094e5df82a.root",
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/877e5103-166a-4da7-8912-d4bf9e85b5d0.root",
++    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/acc9321e-db33-494d-8fd1-1506b87c70c0.root"
++  ]
++  #dmumuPU200 - Dont use
+ elif GEOMETRY == "D98":
+ 
+   # Or read .root files from directory on local computer:
+diff --git a/L1Trigger/TrackFindingTracklet/test/L1TrackNtuplePlot.C b/L1Trigger/TrackFindingTracklet/test/L1TrackNtuplePlot.C
+index 751783d6fbd..fbb75326e3c 100644
+--- a/L1Trigger/TrackFindingTracklet/test/L1TrackNtuplePlot.C
++++ b/L1Trigger/TrackFindingTracklet/test/L1TrackNtuplePlot.C
+@@ -29,7 +29,9 @@
+ #include <string>
+ #include <vector>
+ #include <algorithm>
+-
++//Billy 1 below
++#include <fstream>
++//Billy changed all cout to txtOut
+ using namespace std;
+ 
+ void SetPlotStyle();
+@@ -49,8 +51,8 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+                        bool useDisplacedTrkCuts = false,
+                        bool doDetailedPlots = true,
+                        // For displaced tracking studies, consider using TP_minPt = 3.0, TP_maxEta = 2.0.
+-                       float TP_minPt = 2.0,
+-                       float TP_maxEta = 2.5,
++                       float TP_minPt = 3.0,
++                       float TP_maxEta = 2.0,
+                        // The following four options may not work for all plots ...
+                        int TP_select_injet = 0,
+                        int TP_select_pdgid = 0,
+@@ -93,10 +95,10 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+   gErrorIgnoreLevel = kWarning;
+ 
+   SetPlotStyle();
+-
++  
+   cout.setf(ios::fixed);
+   cout.precision(2);
+-
++  
+   // tracklet variables
+   int L1Tk_seed = 0;
+ 
+@@ -2515,7 +2517,7 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+   // -------------------------------------------------------------------------------------------
+ 
+   TString type = inputRootFile;
+-
++  cout << "file type is :" << type << endl;
+   if (TP_select_pdgid != 0) {
+     char pdgidtxt[500];
+     sprintf(pdgidtxt, "_pdgid%i", TP_select_pdgid);
+@@ -2556,7 +2558,13 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+ 
+   gSystem->mkdir("TrkPlots");
+   TString DIR = "TrkPlots/";
+-
++  //Billy 4 lines below:
++  std::ofstream txtOut(std::string(DIR.Data()) + inputRootFile + "_Summary.txt");
++  if (!txtOut.is_open()) {
++    std::cout << "ERROR: could not open Summary.txt" << std::endl;
++  }
++  txtOut.setf(ios::fixed);
++  txtOut.precision(2);
+   // plots overlaying 68, 90, 99% confidence levels]
+ 
+   // set plotting dislay limit on interval plot resolution
+@@ -3145,8 +3153,18 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+   gPad->SetGridy();
+ 
+   // draw and save plots
++  //calculating tot eff quickly (Billy)
++  double num = (double)n_match_eta1p0 + n_match_eta1p75 + n_match_eta2p5;
++  double den = (double)n_all_eta1p0 + n_all_eta1p75 + n_all_eta2p5;
++
++  double totEff = (den > 0) ? (num / den) : 0.0;
++  totEff *= 100.0;
++  char text[500];
++  //Billy could add error in eff here too
+   h_eff_pt->Draw();
+   h_eff_pt->Write();
++  sprintf(text, "Total efficiency: %.4f%%", totEff);
++  mySmallText(0.60, 0.40, 1, text);
+   c.SaveAs(DIR + type + "_eff_pt.pdf");
+ 
+   if (type.Contains("Mu")) {
+@@ -3156,6 +3174,8 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+ 
+   h_eff_pt_L->Draw();
+   h_eff_pt_L->Write();
++  sprintf(text, "Total efficiency: %.4f%%", totEff);
++  mySmallText(0.60, 0.40, 1, text);
+   sprintf(ctxt, "p_{T} < 8 GeV");
+   mySmallText(0.45, 0.5, 1, ctxt);
+   c.SaveAs(DIR + type + "_eff_pt_L.pdf");
+@@ -3163,18 +3183,24 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+   if (doDetailedPlots) {
+     h_eff_pt_LC->Draw();
+     h_eff_pt_LC->Write();
++    sprintf(text, "Total efficiency: %.4f%%", totEff);
++    mySmallText(0.60, 0.40, 1, text);
+     sprintf(ctxt, "p_{T} < 8 GeV, |#eta|<1.0");
+     mySmallText(0.45, 0.5, 1, ctxt);
+     c.SaveAs(DIR + type + "_eff_pt_LC.pdf");
+   }
+   h_eff_pt_H->Draw();
+   h_eff_pt_H->Write();
++  sprintf(text, "Total efficiency: %.4f%%", totEff);
++  mySmallText(0.60, 0.40, 1, text);
+   sprintf(ctxt, "p_{T} > 8 GeV");
+   mySmallText(0.45, 0.5, 1, ctxt);
+   c.SaveAs(DIR + type + "_eff_pt_H.pdf");
+ 
+   h_eff_eta->Draw();
+   h_eff_eta->Write();
++  sprintf(text, "Total efficiency: %.4f%%", totEff);
++  mySmallText(0.60, 0.40, 1, text);
+   c.SaveAs(DIR + type + "_eff_eta.pdf");
+ 
+   if (type.Contains("Mu")) {
+@@ -3184,12 +3210,16 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+ 
+   h_eff_eta_L->Draw();
+   h_eff_eta_L->Write();
++  sprintf(text, "Total efficiency: %.4f%%", totEff);
++  mySmallText(0.60, 0.40, 1, text);
+   sprintf(ctxt, "p_{T} < 8 GeV");
+   mySmallText(0.45, 0.5, 1, ctxt);
+   c.SaveAs(DIR + type + "_eff_eta_L.pdf");
+ 
+   h_eff_eta_H->Draw();
+   h_eff_eta_H->Write();
++  sprintf(text, "Total efficiency: %.4f%%", totEff);
++  mySmallText(0.60, 0.40, 1, text);
+   sprintf(ctxt, "p_{T} > 8 GeV");
+   mySmallText(0.45, 0.5, 1, ctxt);
+   c.SaveAs(DIR + type + "_eff_eta_H.pdf");
+@@ -3200,22 +3230,30 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+ 
+   if (doDetailedPlots) {
+     h_eff_eta_23->Draw();
++    sprintf(text, "Total efficiency: %.4f%%", totEff);
++    mySmallText(0.60, 0.40, 1, text);
+     sprintf(ctxt, "2 < p_{T} < 3 GeV");
+     mySmallText(0.45, 0.5, 1, ctxt);
+     c.SaveAs(DIR + type + "_eff_eta_23.pdf");
+ 
+     h_eff_eta_35->Draw();
++    sprintf(text, "Total efficiency: %.4f%%", totEff);
++    mySmallText(0.60, 0.40, 1, text);
+     sprintf(ctxt, "3 < p_{T} < 5 GeV");
+     mySmallText(0.45, 0.5, 1, ctxt);
+     c.SaveAs(DIR + type + "_eff_eta_35.pdf");
+ 
+     h_eff_eta_5->Draw();
++    sprintf(text, "Total efficiency: %.4f%%", totEff);
++    mySmallText(0.60, 0.40, 1, text);
+     sprintf(ctxt, "p_{T} > 5 GeV");
+     mySmallText(0.45, 0.5, 1, ctxt);
+     c.SaveAs(DIR + type + "_eff_eta_5.pdf");
+ 
+     h_eff_z0->Draw();
+     h_eff_z0->Write();
++    sprintf(text, "Total efficiency: %.4f%%", totEff);
++    mySmallText(0.60, 0.40, 1, text);
+     c.SaveAs(DIR + type + "_eff_z0.pdf");
+ 
+     h_eff_z0_L->Write();
+@@ -3223,6 +3261,8 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+ 
+     h_eff_phi->Draw();
+     h_eff_phi->Write();
++    sprintf(text, "Total efficiency: %.4f%%", totEff);
++    mySmallText(0.60, 0.40, 1, text);
+     c.SaveAs(DIR + type + "_eff_phi.pdf");
+ 
+     if (type.Contains("Mu")) {
+@@ -3238,15 +3278,23 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+     h_eff_absd0_eta2_pt3->Write();
+ 
+     h_eff_d0->Draw();
++    sprintf(text, "Total efficiency: %.4f%%", totEff);
++    mySmallText(0.60, 0.40, 1, text);
+     c.SaveAs(DIR + type + "_eff_d0.pdf");
+ 
+     h_eff_absd0->Draw();
++    sprintf(text, "Total efficiency: %.4f%%", totEff);
++    mySmallText(0.60, 0.40, 1, text);
+     c.SaveAs(DIR + type + "_eff_absd0.pdf");
+ 
+     h_eff_absd0_eta2->Draw();
++    sprintf(text, "Total efficiency: %.4f%%", totEff);
++    mySmallText(0.60, 0.40, 1, text);
+     c.SaveAs(DIR + type + "_eff_absd0_eta2.pdf");
+ 
+     h_eff_absd0_eta2_pt3->Draw();
++    sprintf(text, "Total efficiency: %.4f%%", totEff);
++    mySmallText(0.60, 0.40, 1, text);
+     c.SaveAs(DIR + type + "_eff_absd0_eta2_pt3.pdf");
+   }
+ 
+@@ -3749,70 +3797,77 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+   // ---------------------------------------------------------------------------------------------------------
+   //some printouts
+ 
+-  cout << endl;
+-  cout << "Number of events = " << nevt << endl;
+-  cout << "All performance results include cuts pt > " << TP_minPt << " & |eta| < " << TP_maxEta
++  txtOut << endl;
++  txtOut << "Number of events = " << nevt << endl;
++  txtOut << "All performance results include cuts pt > " << TP_minPt << " & |eta| < " << TP_maxEta
+        << " unless 'no pt or eta cuts' stated." << endl;
+-  cout << "Only TP with stubs in at least 4 tracker layers considered" << std::endl;
++  if (useDisplacedTrkCuts==true){
++    txtOut << "Displaced cuts are ON" << endl;
++  }
++  else{
++    txtOut << "Displaced cuts are OFF" << endl;
++  }
++  txtOut << "Only TP with stubs in at least 4 tracker layers considered" << std::endl;
+ 
+   float k = (float)n_match_eta1p0;
+   float N = (float)n_all_eta1p0;
+   if (std::abs(N) > 0)
+-    cout << endl
++    txtOut << endl
+          << "efficiency for |eta| < 1.0 = " << k / N * 100.0 << " +- " << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0
+          << endl;
+   k = (float)n_match_eta1p75;
+   N = (float)n_all_eta1p75;
+   if (std::abs(N) > 0)
+-    cout << "efficiency for 1.0 < |eta| < 1.75 = " << k / N * 100.0 << " +- "
++    txtOut << "efficiency for 1.0 < |eta| < 1.75 = " << k / N * 100.0 << " +- "
+          << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0 << endl;
+   k = (float)n_match_eta2p5;
+   N = (float)n_all_eta2p5;
+   if (std::abs(N) > 0)
+-    cout << "efficiency for 1.75 < |eta| < " << std::min(TP_maxEta, 2.5f) << " = " << k / N * 100.0 << " +- "
++    txtOut << "efficiency for 1.75 < |eta| < " << std::min(TP_maxEta, 2.5f) << " = " << k / N * 100.0 << " +- "
+          << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0 << endl;
+   N = (float)n_all_eta1p0 + n_all_eta1p75 + n_all_eta2p5;
+   k = (float)n_match_eta1p0 + n_match_eta1p75 + n_match_eta2p5;
+   if (std::abs(N) > 0)
+-    cout << "combined efficiency for |eta| < " << std::min(TP_maxEta, 2.5f) << " = " << k / N * 100.0 << " +- "
++    txtOut << endl
++         << "TOTAL efficiency for |eta| < " << std::min(TP_maxEta, 2.5f) << " = " << k / N * 100.0 << " +- "
+          << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0 << " = " << k << "/" << N << endl
+          << endl;
+-
++//Billy edited a bit above
+   k = (float)n_match_ptg2;
+   N = (float)n_all_ptg2;
+   if (std::abs(N) > 0)
+-    cout << "efficiency for pt > " << std::max(TP_minPt, 2.0f) << " = " << k / N * 100.0 << " +- "
++    txtOut << "efficiency for pt > " << std::max(TP_minPt, 2.0f) << " = " << k / N * 100.0 << " +- "
+          << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0 << endl;
+   k = (float)n_match_pt2to8;
+   N = (float)n_all_pt2to8;
+   if (std::abs(N) > 0)
+-    cout << "efficiency for " << std::max(TP_minPt, 2.0f) << " < pt < 8.0 = " << k / N * 100.0 << " +- "
++    txtOut << "efficiency for " << std::max(TP_minPt, 2.0f) << " < pt < 8.0 = " << k / N * 100.0 << " +- "
+          << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0 << endl;
+   k = (float)n_match_ptg8;
+   N = (float)n_all_ptg8;
+   if (std::abs(N) > 0)
+-    cout << "efficiency for pt > 8.0 = " << k / N * 100.0 << " +- " << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0
++    txtOut << "efficiency for pt > 8.0 = " << k / N * 100.0 << " +- " << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0
+          << endl;
+   k = (float)n_match_ptg40;
+   N = (float)n_all_ptg40;
+   if (std::abs(N) > 0)
+-    cout << "efficiency for pt > 40.0 = " << k / N * 100.0 << " +- " << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0
++    txtOut << "efficiency for pt > 40.0 = " << k / N * 100.0 << " +- " << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0
+          << endl
+          << endl;
+ 
+   // track rates
+-  cout << "# TP/event (pt > " << std::max(TP_minPt, 2.0f) << ") = " << (float)ntp_pt2 / nevt << endl;
+-  cout << "# TP/event (pt > 3.0) = " << (float)ntp_pt3 / nevt << endl;
+-  cout << "# TP/event (pt > 10.0) = " << (float)ntp_pt10 / nevt << endl;
++  txtOut << "# TP/event (pt > " << std::max(TP_minPt, 2.0f) << ") = " << (float)ntp_pt2 / nevt << endl;
++  txtOut << "# TP/event (pt > 3.0) = " << (float)ntp_pt3 / nevt << endl;
++  txtOut << "# TP/event (pt > 10.0) = " << (float)ntp_pt10 / nevt << endl;
+ 
+-  cout << "# tracks/event (no pt or eta cuts) = " << (float)ntrk / nevt << endl;
+-  cout << "# tracks/event (pt > " << std::max(TP_minPt, 2.0f) << ") = " << (float)ntrk_pt2 / nevt << endl;
+-  cout << "# tracks/event (pt > 3.0) = " << (float)ntrk_pt3 / nevt << endl;
+-  cout << "# tracks/event (pt > 10.0) = " << (float)ntrk_pt10 / nevt << endl << endl;
++  txtOut << "# tracks/event (no pt or eta cuts) = " << (float)ntrk / nevt << endl;
++  txtOut << "# tracks/event (pt > " << std::max(TP_minPt, 2.0f) << ") = " << (float)ntrk_pt2 / nevt << endl;
++  txtOut << "# tracks/event (pt > 3.0) = " << (float)ntrk_pt3 / nevt << endl;
++  txtOut << "# tracks/event (pt > 10.0) = " << (float)ntrk_pt10 / nevt << endl << endl;
+ 
+   // fake & duplicate track rate
+   if (ntrk_genuine > 0) {
+-    cout << "Percentage fake tracks (no pt or eta cuts) = " << 100. * (1. - float(ntrk_genuine) / float(ntrk)) << "%"
++    txtOut << "Percentage fake tracks (no pt or eta cuts) = " << 100. * (1. - float(ntrk_genuine) / float(ntrk)) << "%"
+          << " " << ntrk_genuine << " " << ntrk << endl;
+     /*
+     if (ntrk_genuine_pt2 > 0) { // These also have rapidity cut
+@@ -3820,7 +3875,7 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+            << ") = " << 100. * (1. - float(ntrk_genuine_pt2) / float(ntrk_pt2)) << "%" << endl;
+     }
+     */
+-    cout << "Percentage duplicate tracks (no pt or eta cuts) = " << 100. * float(ntp_ndupmatch) / float(ntrk) << "%"
++    txtOut << "Percentage duplicate tracks (no pt or eta cuts) = " << 100. * float(ntp_ndupmatch) / float(ntrk) << "%"
+          << " " << ntp_ndupmatch << " " << ntrk << endl;
+     /*
+     if (ntrk_genuine_pt2 > 0) { // These also have rapidity cut
+@@ -3831,8 +3886,13 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
+   }
+ 
+   // z0 resolution
+-  cout << "z0 resolution = " << z0ResSample1 << "cm at |eta| = " << etaSample1 << endl;
+-  cout << "z0 resolution = " << z0ResSample2 << "cm at |eta| = " << etaSample2 << endl;
++  txtOut << "z0 resolution = " << z0ResSample1 << "cm at |eta| = " << etaSample1 << endl;
++  txtOut << "z0 resolution = " << z0ResSample2 << "cm at |eta| = " << etaSample2 << endl;
++  //Billy 4 lines below:
++  txtOut.close();
++  std::ifstream inFile((DIR + inputRootFile + "_Summary.txt").Data());
++  std::cout << "\n===== FULL LOG FILE =====\n";
++  std::cout << inFile.rdbuf();
+ }
+ 
+ void SetPlotStyle() {
