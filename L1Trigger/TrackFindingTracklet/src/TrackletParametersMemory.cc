@@ -16,6 +16,7 @@ TrackletParametersMemory::TrackletParametersMemory(string name, Settings const& 
 void TrackletParametersMemory::clean() {
   //This is where we delete the tracklets that were created. As tracklet as stored in both the TPAR and MPAR memories
   //we will onlu delete once in the TPAR memory
+
   if (name_[0] == 'T') {
     for (unsigned int page = 0; page < npage_; page++) {
       for (auto& tracklet : tracklets_[page]) {

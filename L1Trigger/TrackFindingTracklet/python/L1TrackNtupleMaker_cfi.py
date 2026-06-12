@@ -17,6 +17,8 @@ L1TrackNtupleMaker = cms.EDAnalyzer('L1TrackNtupleMaker',
        SaveStubs = cms.bool(False),      # save some info for *all* stubs
        L1Tk_nPar = cms.int32(4), # use 4 or 5-parameter L1 tracking?
        L1Tk_minNStub = cms.int32(4),     # L1 tracks with >= 4 stubs
+       #This is where to change number of stubs when running the runpy ntuple maker!!!
+       print("Remember, we currently are doing {} minimum number of stubs!".format(L1Tk_minNStub.value()))
        TP_minNStub = cms.int32(4),       # require TP to have >= X number of stubs associated with it
        TP_minNStubLayer = cms.int32(4),  # require TP to have stubs in >= X layers/disks
        TP_minPt = cms.double(1.9),       # only save TPs with pt > X GeV

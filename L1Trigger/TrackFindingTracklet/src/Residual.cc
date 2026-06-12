@@ -31,6 +31,7 @@ void Residual::init(Settings const& settings,
   }
 
   int nbitsid = 10;
+  //Billy changed line above from 10 to 11 to account for increase in the other n in Settings.h from 7 to 8 I think
   fpgastubid_.set(istubid, nbitsid, true, __LINE__, __FILE__);
   assert(!fpgaphiresid_.atExtreme());
 

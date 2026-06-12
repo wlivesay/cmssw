@@ -25,7 +25,7 @@ GEOMETRY = "D110"
 # 'HYBRID_DISPLACED_NEWKF_KILL' displaced tracklet followed by DR emulation and 5 param fit sim
 # 'HYBRID_DISPLACED_NEWKF_MERGE' displaced tracklet followed by DR simulation and 5 param fit sim
 # (Or legacy algos 'TMTT' or 'TRACKLET').
-L1TRKALGO = 'HYBRID'
+L1TRKALGO = 'HYBRID_DISPLACED_NEWKF_KILL'
 
 WRITE_DATA = False
 
@@ -65,7 +65,7 @@ process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 # input and output
 ############################################################
 
-process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(100))
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(50000))
 
 #--- To use MCsamples scripts, defining functions get*data*() for easy MC access,
 #--- follow instructions in https://github.com/cms-L1TK/MCsamples
@@ -86,10 +86,43 @@ if GEOMETRY == "D110":
   # Or read specified dataset (accesses CMS DB, so use this method only occasionally):
   #dataName="/RelValTTbar_14TeV_TuneCP5/CMSSW_15_1_0_pre5-PU_150X_mcRun4_realistic_v1_RV269_Run4D110_PU-v2/GEN-SIM-DIGI-RAW"
   #inputMC=getCMSdata(dataName)
-  
-  # ttbar + 200PU
-  inputMC = ["/store/relval/CMSSW_15_1_0_pre5/RelValTTbar_14TeV_TuneCP5/GEN-SIM-DIGI-RAW/PU_150X_mcRun4_realistic_v1_RV269_Run4D110_PU-v2/2590000/0f0bcfd3-dafe-4dda-8d39-9765f6eae68e.root"]
+#-----------------------------------------------
+  #ttbarPU0
+  #inputMC = ["/store/relval/CMSSW_15_1_0_pre5/RelValTTbar_14TeV_TuneCP5/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/02a7204c-3f1c-4858-9350-2f506d729bbc.root"]
 
+  #ttbarPU200
+  #inputMC = ["/store/relval/CMSSW_15_1_0_pre5/RelValTTbar_14TeV_TuneCP5/GEN-SIM-DIGI-RAW/PU_150X_mcRun4_realistic_v1_RV269_Run4D110_PU-v2/2590000/0f0bcfd3-dafe-4dda-8d39-9765f6eae68e.root"]
+  #testing dmumuPU0 1.5-8GeV - it was just as slow as other dmumu
+  #inputMC = ["/store/relval/CMSSW_15_1_0_pre5/RelValDoubleEFlatPt1p5To8Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/1046165c-f291-42de-aff0-3ca323ad610e.root"]
+  #dmumuPU0
+#  inputMC = [
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/15fccacc-3fa6-4346-9cfc-0603b0c88a1a.root",
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/19c01072-d035-4f44-a0f2-febe63c5bf19.root",
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/1ccfeac0-6836-4b70-8c25-a58cba476461.root",
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/1e28317c-ea01-4b8a-9b4f-06a451ce4cd0.root",
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/1f062740-5908-4881-99e7-2906ddff3be5.root",
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/2c39e878-5c6b-4424-91c4-d042025a859a.root",
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/38663973-4192-4c44-82d5-9ca3887e03f6.root",
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/3a3a7d25-e399-495c-bfc4-d1d51e136799.root",
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/457e9ae8-2544-47ae-aa5b-573e413eb5b9.root",
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/45a97837-5f25-4a42-8031-47f9d3c85e87.root",
+#    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100Dxy100GunProducer/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/4bc94a7e-93bc-44d6-9bff-72ae78afb4d2.root"
+#   ]
+  #mumuPU0
+  inputMC = [
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/076c038a-eb20-4be9-8bff-04af5917c436.root",
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/0f3079cd-9bbb-40dd-818f-c88b56da788d.root",
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/172c5251-29a9-401e-98f1-4374d79c452f.root",
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/28930fcd-f1a5-409f-bdbd-2fde46df6a0a.root",
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/2d333cb0-9361-49f2-90ae-e485a261a2ca.root",
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/3c4dffcd-5756-4eb3-8b1c-7650e0e56501.root",
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/595a1087-5042-49e0-aa18-977aae66b3cc.root",
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/7cbd1098-c32b-4c95-806e-921e57b3b46b.root",
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/863168cc-97a1-44f8-ba45-a3094e5df82a.root",
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/877e5103-166a-4da7-8912-d4bf9e85b5d0.root",
+    "/store/relval/CMSSW_15_1_0_pre5/RelValDoubleMuFlatPt1To100/GEN-SIM-DIGI-RAW/150X_mcRun4_realistic_v1_RV269_Run4D110_noPU-v1/2590000/acc9321e-db33-494d-8fd1-1506b87c70c0.root"
+  ]
+  #dmumuPU200 - Dont use
 elif GEOMETRY == "D98":
 
   # Or read .root files from directory on local computer:

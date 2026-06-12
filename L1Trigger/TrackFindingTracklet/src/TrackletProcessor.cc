@@ -195,7 +195,7 @@ void TrackletProcessor::execute(unsigned int iSector, double phimin, double phim
   phimin_ = phimin;
   phimax_ = phimax;
   iSector_ = iSector;
-
+  
   if (!settings_.useSeed(iSeed_))
     return;
 
@@ -301,13 +301,20 @@ void TrackletProcessor::execute(unsigned int iSector, double phimin, double phim
 
       if (accept)
         countsel++;
-
+//Billy changed:
+//old:(back to normal)
       if (trackletpars_->nTracklets() >= settings_.ntrackletmax()) {
         edm::LogVerbatim("Tracklet") << "Will break on number of tracklets in " << getName();
         assert(0);
         break;
-      }
-
+      }//Below is my code I commented out again (back to normal)
+      //if (trackletpars_->nTracklets() >= settings_.ntrackletmax()) {
+      //  edm::LogWarning("Tracklet")
+      //    << "Exceeded nTrackletMax in " << getName()
+      //    << " (skipping further tracklet creation in this unit)";
+      //  break;  // CRITICAL
+      //}
+//new above---------------
       if (settings_.debugTracklet()) {
         edm::LogVerbatim("Tracklet") << "TrackletProcessor execute done";
       }
@@ -485,6 +492,7 @@ void TrackletProcessor::execute(unsigned int iSector, double phimin, double phim
     if (donecount > 4) {
       break;
     }
+
   }
 
   //

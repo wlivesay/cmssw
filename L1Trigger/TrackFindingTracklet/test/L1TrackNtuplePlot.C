@@ -29,7 +29,9 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-
+//Billy 1 below
+#include <fstream>
+//Billy changed all cout to txtOut
 using namespace std;
 
 void SetPlotStyle();
@@ -46,16 +48,19 @@ void makeAllAndTruePDF(TString type, TString dir, TString variable, TH1F* h_all,
 
 void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
                        TString inputDir = "./",
+                       TString extra = "",
+                       int L1Tk_minNstub = 4,
                        bool useDisplacedTrkCuts = false,
                        bool doDetailedPlots = true,
                        // For displaced tracking studies, consider using TP_minPt = 3.0, TP_maxEta = 2.0.
-                       float TP_minPt = 2.0,
-                       float TP_maxEta = 2.5,
+                       float TP_minPt = 3.0,
+                       float TP_maxEta = 2.0,
                        // The following four options may not work for all plots ...
                        int TP_select_injet = 0,
                        int TP_select_pdgid = 0,
                        int TP_select_eventid = 0,
                        bool useDeadRegion = false) {
+  //L1Tk_minNstub Billy added! Remember if no value is included as input 4 will be chosen!
   // inputRootFile:     this is the name of the input file you want to process (minus ".root" extension)
   // inputDir:          this is the directory containing the input file you want to process. It must end with a "/".
   // useDisplacedTrkCuts: set true if studying displaced tracking performance.
@@ -69,7 +74,8 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
 
   // -----------------------------------------------------------------------------------------
   // Baseline cut scenario for efficiency and rate plots ==> configure as appropriate
-  constexpr int L1Tk_minNstub = 4;
+  //Billy commented out line below and added it as an input to the function instead!
+  //constexpr int L1Tk_minNstub = 4;
   constexpr float L1Tk_maxChi2 = 999999;
   constexpr float L1Tk_maxChi2dof = 999999.;
   // Use looser impact-parameter related cuts for displaced tracking studies.
@@ -93,10 +99,10 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
   gErrorIgnoreLevel = kWarning;
 
   SetPlotStyle();
-
+  
   cout.setf(ios::fixed);
   cout.precision(2);
-
+  
   // tracklet variables
   int L1Tk_seed = 0;
 
@@ -1142,6 +1148,7 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
         continue;
       if (trk_chi2_dof->at(it) > L1Tk_maxChi2dof)
         continue;
+      //cout << "$" << trk_nstub->at(it) << endl;
       if (trk_nstub->at(it) < L1Tk_minNstub)
         continue;
 
@@ -2515,7 +2522,7 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
   // -------------------------------------------------------------------------------------------
 
   TString type = inputRootFile;
-
+  cout << "file type is :" << type << endl;
   if (TP_select_pdgid != 0) {
     char pdgidtxt[500];
     sprintf(pdgidtxt, "_pdgid%i", TP_select_pdgid);
@@ -2538,14 +2545,14 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
     sprintf(seedtxt, "_seed%i", L1Tk_seed);
     type = type + seedtxt;
   }
-
+  //TString L1Tk_minNstubstr = (L1Tk_minNstub != 4) ? TString::Format("_stub%d", L1Tk_minNstub) : TString("");
   if (TP_minPt > 2.0) {
     char pttxt[500];
     sprintf(pttxt, "_pt%.0f", TP_minPt);
     type = type + pttxt;
   }
 
-  TFile* fout = new TFile(inputDir + "output_" + inputRootFile + ".root", "recreate");
+  TFile* fout = new TFile(inputDir + "output_" + inputRootFile + extra + ".root", "recreate");
 
   // -------------------------------------------------------------------------------------------
   // draw and save plots
@@ -2556,7 +2563,13 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
 
   gSystem->mkdir("TrkPlots");
   TString DIR = "TrkPlots/";
-
+  //Billy 4 lines below:
+  std::ofstream txtOut(std::string(DIR.Data()) + std::string(inputRootFile.Data()) + std::string(extra.Data()) + "_Summary.txt");
+  if (!txtOut.is_open()) {
+    std::cout << "ERROR: could not open Summary.txt" << std::endl;
+  }
+  txtOut.setf(ios::fixed);
+  txtOut.precision(2);
   // plots overlaying 68, 90, 99% confidence levels]
 
   // set plotting dislay limit on interval plot resolution
@@ -3145,8 +3158,18 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
   gPad->SetGridy();
 
   // draw and save plots
+  //calculating tot eff quickly (Billy)
+  double num = (double)n_match_eta1p0 + n_match_eta1p75 + n_match_eta2p5;
+  double den = (double)n_all_eta1p0 + n_all_eta1p75 + n_all_eta2p5;
+
+  double totEff = (den > 0) ? (num / den) : 0.0;
+  totEff *= 100.0;
+  char text[500];
+  //Billy could add error in eff here too
   h_eff_pt->Draw();
   h_eff_pt->Write();
+  sprintf(text, "Total efficiency: %.4f%%", totEff);
+  mySmallText(0.60, 0.40, 1, text);
   c.SaveAs(DIR + type + "_eff_pt.pdf");
 
   if (type.Contains("Mu")) {
@@ -3156,6 +3179,8 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
 
   h_eff_pt_L->Draw();
   h_eff_pt_L->Write();
+  sprintf(text, "Total efficiency: %.4f%%", totEff);
+  mySmallText(0.60, 0.40, 1, text);
   sprintf(ctxt, "p_{T} < 8 GeV");
   mySmallText(0.45, 0.5, 1, ctxt);
   c.SaveAs(DIR + type + "_eff_pt_L.pdf");
@@ -3163,18 +3188,24 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
   if (doDetailedPlots) {
     h_eff_pt_LC->Draw();
     h_eff_pt_LC->Write();
+    sprintf(text, "Total efficiency: %.4f%%", totEff);
+    mySmallText(0.60, 0.40, 1, text);
     sprintf(ctxt, "p_{T} < 8 GeV, |#eta|<1.0");
     mySmallText(0.45, 0.5, 1, ctxt);
     c.SaveAs(DIR + type + "_eff_pt_LC.pdf");
   }
   h_eff_pt_H->Draw();
   h_eff_pt_H->Write();
+  sprintf(text, "Total efficiency: %.4f%%", totEff);
+  mySmallText(0.60, 0.40, 1, text);
   sprintf(ctxt, "p_{T} > 8 GeV");
   mySmallText(0.45, 0.5, 1, ctxt);
   c.SaveAs(DIR + type + "_eff_pt_H.pdf");
 
   h_eff_eta->Draw();
   h_eff_eta->Write();
+  sprintf(text, "Total efficiency: %.4f%%", totEff);
+  mySmallText(0.60, 0.40, 1, text);
   c.SaveAs(DIR + type + "_eff_eta.pdf");
 
   if (type.Contains("Mu")) {
@@ -3184,12 +3215,16 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
 
   h_eff_eta_L->Draw();
   h_eff_eta_L->Write();
+  sprintf(text, "Total efficiency: %.4f%%", totEff);
+  mySmallText(0.60, 0.40, 1, text);
   sprintf(ctxt, "p_{T} < 8 GeV");
   mySmallText(0.45, 0.5, 1, ctxt);
   c.SaveAs(DIR + type + "_eff_eta_L.pdf");
 
   h_eff_eta_H->Draw();
   h_eff_eta_H->Write();
+  sprintf(text, "Total efficiency: %.4f%%", totEff);
+  mySmallText(0.60, 0.40, 1, text);
   sprintf(ctxt, "p_{T} > 8 GeV");
   mySmallText(0.45, 0.5, 1, ctxt);
   c.SaveAs(DIR + type + "_eff_eta_H.pdf");
@@ -3200,22 +3235,30 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
 
   if (doDetailedPlots) {
     h_eff_eta_23->Draw();
+    sprintf(text, "Total efficiency: %.4f%%", totEff);
+    mySmallText(0.60, 0.40, 1, text);
     sprintf(ctxt, "2 < p_{T} < 3 GeV");
     mySmallText(0.45, 0.5, 1, ctxt);
     c.SaveAs(DIR + type + "_eff_eta_23.pdf");
 
     h_eff_eta_35->Draw();
+    sprintf(text, "Total efficiency: %.4f%%", totEff);
+    mySmallText(0.60, 0.40, 1, text);
     sprintf(ctxt, "3 < p_{T} < 5 GeV");
     mySmallText(0.45, 0.5, 1, ctxt);
     c.SaveAs(DIR + type + "_eff_eta_35.pdf");
 
     h_eff_eta_5->Draw();
+    sprintf(text, "Total efficiency: %.4f%%", totEff);
+    mySmallText(0.60, 0.40, 1, text);
     sprintf(ctxt, "p_{T} > 5 GeV");
     mySmallText(0.45, 0.5, 1, ctxt);
     c.SaveAs(DIR + type + "_eff_eta_5.pdf");
 
     h_eff_z0->Draw();
     h_eff_z0->Write();
+    sprintf(text, "Total efficiency: %.4f%%", totEff);
+    mySmallText(0.60, 0.40, 1, text);
     c.SaveAs(DIR + type + "_eff_z0.pdf");
 
     h_eff_z0_L->Write();
@@ -3223,6 +3266,8 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
 
     h_eff_phi->Draw();
     h_eff_phi->Write();
+    sprintf(text, "Total efficiency: %.4f%%", totEff);
+    mySmallText(0.60, 0.40, 1, text);
     c.SaveAs(DIR + type + "_eff_phi.pdf");
 
     if (type.Contains("Mu")) {
@@ -3238,15 +3283,23 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
     h_eff_absd0_eta2_pt3->Write();
 
     h_eff_d0->Draw();
+    sprintf(text, "Total efficiency: %.4f%%", totEff);
+    mySmallText(0.60, 0.40, 1, text);
     c.SaveAs(DIR + type + "_eff_d0.pdf");
 
     h_eff_absd0->Draw();
+    sprintf(text, "Total efficiency: %.4f%%", totEff);
+    mySmallText(0.60, 0.40, 1, text);
     c.SaveAs(DIR + type + "_eff_absd0.pdf");
 
     h_eff_absd0_eta2->Draw();
+    sprintf(text, "Total efficiency: %.4f%%", totEff);
+    mySmallText(0.60, 0.40, 1, text);
     c.SaveAs(DIR + type + "_eff_absd0_eta2.pdf");
 
     h_eff_absd0_eta2_pt3->Draw();
+    sprintf(text, "Total efficiency: %.4f%%", totEff);
+    mySmallText(0.60, 0.40, 1, text);
     c.SaveAs(DIR + type + "_eff_absd0_eta2_pt3.pdf");
   }
 
@@ -3749,70 +3802,77 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
   // ---------------------------------------------------------------------------------------------------------
   //some printouts
 
-  cout << endl;
-  cout << "Number of events = " << nevt << endl;
-  cout << "All performance results include cuts pt > " << TP_minPt << " & |eta| < " << TP_maxEta
+  txtOut << endl;
+  txtOut << "Number of events = " << nevt << endl;
+  txtOut << "All performance results include cuts pt > " << TP_minPt << " & |eta| < " << TP_maxEta
        << " unless 'no pt or eta cuts' stated." << endl;
-  cout << "Only TP with stubs in at least 4 tracker layers considered" << std::endl;
+  if (useDisplacedTrkCuts==true){
+    txtOut << "Displaced cuts are ON" << endl;
+  }
+  else{
+    txtOut << "Displaced cuts are OFF" << endl;
+  }
+  txtOut << "Only TP with stubs in at least " << L1Tk_minNstub <<" tracker layers considered" << std::endl;
 
   float k = (float)n_match_eta1p0;
   float N = (float)n_all_eta1p0;
   if (std::abs(N) > 0)
-    cout << endl
+    txtOut << endl
          << "efficiency for |eta| < 1.0 = " << k / N * 100.0 << " +- " << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0
          << endl;
   k = (float)n_match_eta1p75;
   N = (float)n_all_eta1p75;
   if (std::abs(N) > 0)
-    cout << "efficiency for 1.0 < |eta| < 1.75 = " << k / N * 100.0 << " +- "
+    txtOut << "efficiency for 1.0 < |eta| < 1.75 = " << k / N * 100.0 << " +- "
          << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0 << endl;
   k = (float)n_match_eta2p5;
   N = (float)n_all_eta2p5;
   if (std::abs(N) > 0)
-    cout << "efficiency for 1.75 < |eta| < " << std::min(TP_maxEta, 2.5f) << " = " << k / N * 100.0 << " +- "
+    txtOut << "efficiency for 1.75 < |eta| < " << std::min(TP_maxEta, 2.5f) << " = " << k / N * 100.0 << " +- "
          << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0 << endl;
   N = (float)n_all_eta1p0 + n_all_eta1p75 + n_all_eta2p5;
   k = (float)n_match_eta1p0 + n_match_eta1p75 + n_match_eta2p5;
   if (std::abs(N) > 0)
-    cout << "combined efficiency for |eta| < " << std::min(TP_maxEta, 2.5f) << " = " << k / N * 100.0 << " +- "
+    txtOut << endl
+         << "TOTAL efficiency for |eta| < " << std::min(TP_maxEta, 2.5f) << " = " << k / N * 100.0 << " +- "
          << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0 << " = " << k << "/" << N << endl
          << endl;
-
+//Billy edited a bit above
   k = (float)n_match_ptg2;
   N = (float)n_all_ptg2;
   if (std::abs(N) > 0)
-    cout << "efficiency for pt > " << std::max(TP_minPt, 2.0f) << " = " << k / N * 100.0 << " +- "
+    txtOut << "efficiency for pt > " << std::max(TP_minPt, 2.0f) << " = " << k / N * 100.0 << " +- "
          << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0 << endl;
   k = (float)n_match_pt2to8;
   N = (float)n_all_pt2to8;
   if (std::abs(N) > 0)
-    cout << "efficiency for " << std::max(TP_minPt, 2.0f) << " < pt < 8.0 = " << k / N * 100.0 << " +- "
+    txtOut << "efficiency for " << std::max(TP_minPt, 2.0f) << " < pt < 8.0 = " << k / N * 100.0 << " +- "
          << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0 << endl;
   k = (float)n_match_ptg8;
   N = (float)n_all_ptg8;
   if (std::abs(N) > 0)
-    cout << "efficiency for pt > 8.0 = " << k / N * 100.0 << " +- " << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0
+    txtOut << "efficiency for pt > 8.0 = " << k / N * 100.0 << " +- " << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0
          << endl;
   k = (float)n_match_ptg40;
   N = (float)n_all_ptg40;
   if (std::abs(N) > 0)
-    cout << "efficiency for pt > 40.0 = " << k / N * 100.0 << " +- " << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0
+    txtOut << "efficiency for pt > 40.0 = " << k / N * 100.0 << " +- " << 1.0 / N * sqrt(k * (1.0 - k / N)) * 100.0
          << endl
          << endl;
 
   // track rates
-  cout << "# TP/event (pt > " << std::max(TP_minPt, 2.0f) << ") = " << (float)ntp_pt2 / nevt << endl;
-  cout << "# TP/event (pt > 3.0) = " << (float)ntp_pt3 / nevt << endl;
-  cout << "# TP/event (pt > 10.0) = " << (float)ntp_pt10 / nevt << endl;
+  txtOut << "# TP/event (pt > " << std::max(TP_minPt, 2.0f) << ") = " << (float)ntp_pt2 / nevt << endl;
+  txtOut << "# TP/event (pt > 3.0) = " << (float)ntp_pt3 / nevt << endl;
+  txtOut << "# TP/event (pt > 10.0) = " << (float)ntp_pt10 / nevt << endl;
 
-  cout << "# tracks/event (no pt or eta cuts) = " << (float)ntrk / nevt << endl;
-  cout << "# tracks/event (pt > " << std::max(TP_minPt, 2.0f) << ") = " << (float)ntrk_pt2 / nevt << endl;
-  cout << "# tracks/event (pt > 3.0) = " << (float)ntrk_pt3 / nevt << endl;
-  cout << "# tracks/event (pt > 10.0) = " << (float)ntrk_pt10 / nevt << endl << endl;
+  txtOut << "# tracks/event (no pt or eta cuts) = " << (float)ntrk / nevt << endl;
+  txtOut << "# tracks/event (pt > " << std::max(TP_minPt, 2.0f) << ") = " << (float)ntrk_pt2 / nevt << endl;
+  txtOut << "# tracks/event (pt > 3.0) = " << (float)ntrk_pt3 / nevt << endl;
+  txtOut << "# tracks/event (pt > 10.0) = " << (float)ntrk_pt10 / nevt << endl << endl;
 
   // fake & duplicate track rate
   if (ntrk_genuine > 0) {
-    cout << "Percentage fake tracks (no pt or eta cuts) = " << 100. * (1. - float(ntrk_genuine) / float(ntrk)) << "%"
+    txtOut << "Percentage fake tracks (no pt or eta cuts) = " << 100. * (1. - float(ntrk_genuine) / float(ntrk)) << "%"
          << " " << ntrk_genuine << " " << ntrk << endl;
     /*
     if (ntrk_genuine_pt2 > 0) { // These also have rapidity cut
@@ -3820,7 +3880,7 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
            << ") = " << 100. * (1. - float(ntrk_genuine_pt2) / float(ntrk_pt2)) << "%" << endl;
     }
     */
-    cout << "Percentage duplicate tracks (no pt or eta cuts) = " << 100. * float(ntp_ndupmatch) / float(ntrk) << "%"
+    txtOut << "Percentage duplicate tracks (no pt or eta cuts) = " << 100. * float(ntp_ndupmatch) / float(ntrk) << "%"
          << " " << ntp_ndupmatch << " " << ntrk << endl;
     /*
     if (ntrk_genuine_pt2 > 0) { // These also have rapidity cut
@@ -3831,8 +3891,13 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
   }
 
   // z0 resolution
-  cout << "z0 resolution = " << z0ResSample1 << "cm at |eta| = " << etaSample1 << endl;
-  cout << "z0 resolution = " << z0ResSample2 << "cm at |eta| = " << etaSample2 << endl;
+  txtOut << "z0 resolution = " << z0ResSample1 << "cm at |eta| = " << etaSample1 << endl;
+  txtOut << "z0 resolution = " << z0ResSample2 << "cm at |eta| = " << etaSample2 << endl;
+  //Billy 4 lines below:
+  txtOut.close();
+  std::ifstream inFile((DIR + inputRootFile + extra + "_Summary.txt").Data());
+  std::cout << "\n===== FULL LOG FILE =====\n";
+  std::cout << inFile.rdbuf();
 }
 
 void SetPlotStyle() {

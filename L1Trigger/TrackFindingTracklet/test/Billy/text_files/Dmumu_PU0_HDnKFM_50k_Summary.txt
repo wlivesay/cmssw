@@ -1,0 +1,29 @@
+
+Number of events = 50000
+All performance results include cuts pt > 3.00 & |eta| < 2.00 unless 'no pt or eta cuts' stated.
+Displaced cuts are ON
+Only TP with stubs in at least 4 tracker layers considered
+
+efficiency for |eta| < 1.0 = 77.11 +- 0.46
+efficiency for 1.0 < |eta| < 1.75 = 67.78 +- 0.57
+efficiency for 1.75 < |eta| < 2.00 = 49.98 +- 1.06
+
+TOTAL efficiency for |eta| < 2.00 = 70.05 +- 0.35 = 12276.00/17524.00
+
+efficiency for pt > 3.00 = 70.05 +- 0.35
+efficiency for 3.00 < pt < 8.0 = 73.10 +- 1.52
+efficiency for pt > 8.0 = 69.90 +- 0.36
+efficiency for pt > 40.0 = 69.74 +- 0.44
+
+# TP/event (pt > 3.00) = 0.35
+# TP/event (pt > 3.0) = 0.35
+# TP/event (pt > 10.0) = 0.33
+# tracks/event (no pt or eta cuts) = 0.80
+# tracks/event (pt > 3.00) = 0.78
+# tracks/event (pt > 3.0) = 0.78
+# tracks/event (pt > 10.0) = 0.73
+
+Percentage fake tracks (no pt or eta cuts) = 0.01% 39974 39977
+Percentage duplicate tracks (no pt or eta cuts) = 2.11% 843 39977
+z0 resolution = 0.25cm at |eta| = 0.05
+z0 resolution = 0.55cm at |eta| = 1.95
