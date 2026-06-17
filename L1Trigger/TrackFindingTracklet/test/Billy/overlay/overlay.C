@@ -196,8 +196,8 @@ void overlay(TString what, TString file1, TString file2, TString include_subplot
   TString setting = "";
   // Set to "counts" for max at 300 y-axis
 
-  TFile* tree1 = new TFile("Billy/root_files/"+file1);
-  TFile* tree2 = new TFile("Billy/root_files/"+file2);
+  TFile* tree1 = new TFile("/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/"+file1);
+  TFile* tree2 = new TFile("/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/"+file2);
 
   TH1F* h1 = (TH1F*) tree1->Get(what);
   TH1F* h2 = (TH1F*) tree2->Get(what);
@@ -252,8 +252,8 @@ void overlay(TString what, TString file1, TString file2, TString include_subplot
       !what.Contains("_5")   && !what.Contains("_23") &&
       !what.Contains("_35")  && !what.Contains("_LC") &&
       !what.Contains("_eta2")) {
-    eff1 = getTotalEff(("Billy/text_files/"+f1+"_Summary.txt").Data());
-    eff2 = getTotalEff(("Billy/text_files/"+f2+"_Summary.txt").Data());
+    eff1 = getTotalEff(("/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/text_files/"+f1+"_Summary.txt").Data());
+    eff2 = getTotalEff(("/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/text_files/"+f2+"_Summary.txt").Data());
   }
 
   // ── Legend (shared by both branches) ─────────────────────────────────────

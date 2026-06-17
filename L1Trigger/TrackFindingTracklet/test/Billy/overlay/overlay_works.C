@@ -136,8 +136,8 @@ void overlay(TString what,TString file1, TString file2, TString include_subplot)
   //Set to "counts" for max at 300 y-axis
 
 
-  TFile* tree1 = new TFile("Billy/root_files/"+file1);
-  TFile* tree2 = new TFile("Billy/root_files/"+file2);
+  TFile* tree1 = new TFile("/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/"+file1);
+  TFile* tree2 = new TFile("/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/"+file2);
   //TFile* tree3 = new TFile("output_TTbar_PU200_tracklet_sim_500evt.root");
   //TFile* tree4 = new TFile("output_TTbar_PU200_hybrid_displaced_500evt.root")
 
@@ -196,9 +196,9 @@ void overlay(TString what,TString file1, TString file2, TString include_subplot)
     l = new TLegend(0.20,0.22,0.50,0.40);
     mySmallText(0.55,0.52,1, buildLabel(common).Data());
     if (!what.Contains("_H") && !what.Contains("_L") && !what.Contains("_5") && !what.Contains("_23") && !what.Contains("_35") && !what.Contains("_LC") && !what.Contains("_eta2")){
-      TString file1 = "Billy/text_files/"+f1+"_Summary.txt";
+      TString file1 = "/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/text_files/"+f1+"_Summary.txt";
       TString eff1 = getTotalEff(file1.Data());
-      TString file2 = "Billy/text_files/"+f2+"_Summary.txt";
+      TString file2 = "/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/text_files/"+f2+"_Summary.txt";
       TString eff2 = getTotalEff(file2.Data());
       mySmallText(0.55,0.41,h1->GetLineColor(), TString("Total eff1 = ")+eff1+"%");
       mySmallText(0.55,0.30,h2->GetLineColor(), TString("Total eff2 = ")+eff2+"%");
@@ -232,9 +232,9 @@ void overlay(TString what,TString file1, TString file2, TString include_subplot)
     if (what.Contains("eff")) {
       mySmallText(0.55,0.52,1, buildLabel(common).Data());
       if (!what.Contains("_H") && !what.Contains("_L") && !what.Contains("_5") && !what.Contains("_23") && !what.Contains("_35") && !what.Contains("_LC") && !what.Contains("_eta2")){
-        TString file1txt = "Billy/text_files/"+f1+"_Summary.txt";
+        TString file1txt = "/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/text_files/"+f1+"_Summary.txt";
         TString eff1 = getTotalEff(file1txt.Data());
-        TString file2txt = "Billy/text_files/"+f2+"_Summary.txt";
+        TString file2txt = "/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/text_files/"+f2+"_Summary.txt";
         TString eff2 = getTotalEff(file2txt.Data());
         mySmallText(0.55,0.41,h1->GetLineColor(), TString("Total eff1 = ")+eff1+"%");
         mySmallText(0.55,0.30,h2->GetLineColor(), TString("Total eff2 = ")+eff2+"%");
@@ -300,9 +300,9 @@ void overlay(TString what,TString file1, TString file2, TString include_subplot)
     if (what.Contains("eff")) {
       mySmallText(0.55,0.52,1, buildLabel(common).Data());
       if (!what.Contains("_H") && !what.Contains("_L") && !what.Contains("_5") && !what.Contains("_23") && !what.Contains("_35") && !what.Contains("_LC") && !what.Contains("_eta2")){
-        TString file1txt = "Billy/text_files/"+f1+"_Summary.txt";
+        TString file1txt = "/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/text_files/"+f1+"_Summary.txt";
         TString eff1 = getTotalEff(file1txt.Data());
-        TString file2txt = "Billy/text_files/"+f2+"_Summary.txt";
+        TString file2txt = "/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/text_files/"+f2+"_Summary.txt";
         TString eff2 = getTotalEff(file2txt.Data());
         mySmallText(0.55,0.41,h1->GetLineColor(), TString("Total eff1 = ")+eff1+"%");
         mySmallText(0.55,0.30,h2->GetLineColor(), TString("Total eff2 = ")+eff2+"%");

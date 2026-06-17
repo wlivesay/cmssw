@@ -32,6 +32,7 @@
 //Billy 1 below
 #include <fstream>
 //Billy changed all cout to txtOut
+#include "TPRegexp.h"
 using namespace std;
 
 void SetPlotStyle();
@@ -3812,8 +3813,33 @@ void L1TrackNtuplePlot(TString inputRootFile = "L1TrkNtuple",
   else{
     txtOut << "Displaced cuts are OFF" << endl;
   }
-  txtOut << "Only TP with stubs in at least " << L1Tk_minNstub <<" tracker layers considered" << std::endl;
 
+  int trkStubInfo = 4; // default
+  int tpStubInfo = 4;  // default
+
+  TPRegexp reTrk("trkstub(\\d+)");
+  TPRegexp reTp("TPstub(\\d+)");
+  TPRegexp reBoth("(?<!trk|TP)stub(\\d+)");
+
+  TObjArray* trkMatches = reTrk.MatchS(inputRootFile);
+  TObjArray* tpMatches = reTp.MatchS(inputRootFile);
+  TObjArray* bothMatches = reBoth.MatchS(inputRootFile);
+
+  if (trkMatches->GetEntries() > 1)
+      trkStubInfo = TString(trkMatches->At(1)->GetName()).Atoi();
+  else if (bothMatches->GetEntries() > 1)
+      trkStubInfo = TString(bothMatches->At(1)->GetName()).Atoi();
+
+  if (tpMatches->GetEntries() > 1)
+      tpStubInfo = TString(tpMatches->At(1)->GetName()).Atoi();
+  else if (bothMatches->GetEntries() > 1)
+      tpStubInfo = TString(bothMatches->At(1)->GetName()).Atoi();
+
+  txtOut << "Ntuple track stub cut (trkstub): " << trkStubInfo << endl;
+  txtOut << "Ntuple TP stub cut (TPstub): " << tpStubInfo << endl;
+
+  txtOut << "Plots considers Tracks with a minimum of " << L1Tk_minNstub <<" stubs." << std::endl;
+  
   float k = (float)n_match_eta1p0;
   float N = (float)n_all_eta1p0;
   if (std::abs(N) > 0)

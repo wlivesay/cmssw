@@ -1,5 +1,5 @@
 files=()
-for f in Billy/root_files/*.root; do
+for f in /eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/*.root; do
   [[ "$f" != *output* ]] && continue
   files+=("$f")
 done
@@ -44,4 +44,4 @@ echo ".L Billy/overlay/overlay.C++"
 echo "overlay(\"$data_type\",\"$file1\",\"$file2\", \"$subplot\")"
 root -l
 echo "mv Billy/overlay/outputs/*.pdf /eos/user/w/wlivesay/Summer/Data/pre4/NEW/overlay"
-
+echo "MAYBE CHANGE TO OLD"
