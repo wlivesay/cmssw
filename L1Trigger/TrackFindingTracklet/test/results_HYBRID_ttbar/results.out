@@ -1,0 +1,29 @@
+All performance results include cuts pt > 3.00 & |eta| < 2.00 unless 'no pt or eta cuts' stated.
+Displaced cuts are OFF
+Ntuple track stub cut (trkstub): 4
+Ntuple TP stub cut (TPstub): 4
+Plots considers Tracks with a minimum of 4 stubs.
+
+efficiency for |eta| < 1.0 = 97.78 +- 0.16
+efficiency for 1.0 < |eta| < 1.75 = 96.56 +- 0.27
+efficiency for 1.75 < |eta| < 2.00 = 96.84 +- 0.53
+
+TOTAL efficiency for |eta| < 2.00 = 97.32 +- 0.13 = 14038.00/14425.00
+
+efficiency for pt > 3.00 = 97.32 +- 0.13
+efficiency for 3.00 < pt < 8.0 = 97.29 +- 0.17
+efficiency for pt > 8.0 = 97.37 +- 0.22
+efficiency for pt > 40.0 = 97.08 +- 0.80
+
+# TP/event (pt > 3.00) = 14.43
+# TP/event (pt > 3.0) = 14.43
+# TP/event (pt > 10.0) = 4.11
+# tracks/event (no pt or eta cuts) = 28.82
+# tracks/event (pt > 3.00) = 18.35
+# tracks/event (pt > 3.0) = 18.35
+# tracks/event (pt > 10.0) = 5.60
+
+Percentage fake tracks (no pt or eta cuts) = 5.59% 27211 28823
+Percentage duplicate tracks (no pt or eta cuts) = 3.94% 1137 28823
+z0 resolution = 0.09cm at |eta| = 0.05
+z0 resolution = 0.37cm at |eta| = 1.95

@@ -29,7 +29,6 @@ echo ".L L1TrackNtuplePlot.C++"
 
 echo "(path, name, extra name, min stubs, disp cuts? (true/false), detailed plots? true/false), minpt, maxeta)"
 #echo "L1TrackNtuplePlot(\"$old_name\",\"/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/\",$extra_name,4,true,true,3.0,2.0)"
-echo "L1TrackNtuplePlot(\"$old_name\",\"/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/\",$extra_name,$minstubs,$disp,true,3.0,2.0)"
-root -l
+root -l -q "L1TrackNtuplePlot.C++(\"$old_name\",\"/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/\",\"$extra_name\",$minstubs,$disp)"
 cp TrkPlots/*.txt /eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/text_files
 echo "mv TrkPlots/*.pdf TrkPlots/*txt /eos/user/w/wlivesay/Summer/Data/pre4/NEW/ttbar/PU/Hybrid/500"

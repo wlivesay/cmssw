@@ -40,8 +40,20 @@ rootls "$file1"
 read data_type
 echo "Include ratio subplot? (y/n):"
 read subplot
-echo ".L Billy/overlay/overlay.C++"
-echo "overlay(\"$data_type\",\"$file1\",\"$file2\", \"$subplot\")"
-root -l
-echo "mv Billy/overlay/outputs/*.pdf /eos/user/w/wlivesay/Summer/Data/pre4/NEW/overlay"
-echo "MAYBE CHANGE TO OLD"
+
+read -p "Make overlay plot? (y/n): " confirm
+if [ "$confirm" = "y" ]; then
+    root -l -q "Billy/overlay/overlay.C++(\"$data_type\",\"$file1\",\"$file2\",\"$subplot\")"
+    read -p "Move overlay PDFs to EOS? (y/n): " move_confirm
+    if [ "$move_confirm" = "y" ]; then
+        mv Billy/overlay/outputs/*.pdf /eos/user/w/wlivesay/Summer/Data/pre4/OLD/overlay
+        echo "Files moved."
+    else
+        echo "Skipped."
+    fi
+else
+    echo "Cancelled."
+fi
+
+#echo "mv Billy/overlay/outputs/*.pdf /eos/user/w/wlivesay/Summer/Data/pre4/OLD/overlay"
+#echo "MAYBE CHANGE TO OLD"

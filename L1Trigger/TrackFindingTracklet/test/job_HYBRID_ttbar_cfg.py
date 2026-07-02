@@ -363,3 +363,6 @@ if (WRITE_DATA):
 
 
 
+process.TFileService.fileName = cms.string('/afs/cern.ch/user/w/wlivesay/CMSSW_15_1_0_pre4/src/L1Trigger/TrackFindingTracklet/test/results_HYBRID_ttbar/histos.root')
+process.maxEvents = cms.untracked.PSet(input = cms.untracked.int32(1000))
+process.source.fileNames = cms.untracked.vstring('file:mc_dataset.root')

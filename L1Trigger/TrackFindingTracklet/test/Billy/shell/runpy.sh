@@ -6,7 +6,7 @@ echo "New root file name: NO .root (remember stub#, trkstub#, TPstub#)"
 read new_name
 path="/eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/$new_name.root"
 cp L1TrkNtuple.root "$path"
-rm /eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/cancel
+rm /eos/user/w/wlivesay/Summer/Data/pre4/OLD/old_files/root_files/cancel.root
 echo "Ntuple created: $path. Run runc to make plots."
 
 
