@@ -23,3 +23,5 @@ __init__.py
 .DS_Store
 *.so
 TrkPlots/
+*.root
+*.pdf
