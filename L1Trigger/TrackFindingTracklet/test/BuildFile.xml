@@ -20,3 +20,5 @@
   <use name="L1Trigger/TrackFindingTracklet"/>
   <use name="L1Trigger/TrackerTFP"/>
 </library>
+
+<test name="unit_test" command="UT1.sh"/>
