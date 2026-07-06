@@ -21,4 +21,4 @@
   <use name="L1Trigger/TrackerTFP"/>
 </library>
 
-<test name="unit_test" command="UT1.sh"/>
+<test name="unit_test" command="UTMaster.sh"/>
